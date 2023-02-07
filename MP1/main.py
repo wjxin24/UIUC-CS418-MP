@@ -3,6 +3,7 @@ from PIL import Image
 
 # keywords
 DEPTH = False
+SRGB = False
 
 class Pixel:
     def __init__(self, x, y, z, w, r, g, b):
@@ -128,16 +129,39 @@ def drawline(left: Pixel, right: Pixel):
 
 def drawpixel(p: Pixel):
     p_x, p_y = round(p.pixel_coor()[0]), round(p.pixel_coor()[1])
+    p_r, p_g, p_b = p.r, p.g, p.b
+    if SRGB:
+        p_r, p_g, p_b = linear_to_sRGB([p.r, p.g, p.b])
     if DEPTH:
         if depth_buffer[p_x][p_y] > p.z / p.w and p.z / p.w >= -1:
             depth_buffer[p_x][p_y] = p.z / p.w
-            image.im.putpixel((p_x, p_y), (round(p.r), round(p.g), round(p.b), 255))
+            image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
         return
-    image.im.putpixel((p_x, p_y), (round(p.r), round(p.g), round(p.b), 255))
-    
+    image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
+
+# convert sRGB to linear color space
+def sRGB_to_linear(rgb):
+    for i in range(3):
+        rgb[i] /= 255
+        if rgb[i] <= 0.04045:
+            rgb[i] /= 12.92
+        else:
+            rgb[i] = ((rgb[i]+0.055)/1.055)**2.4
+    return rgb
+
+# convert linear color space to sRGB
+def linear_to_sRGB(rgb):
+    sRGB = [0,0,0]
+    for i in range(3):
+        if rgb[i] <= 0.0031308:
+            sRGB[i] = rgb[i] * 12.92
+        else:
+            sRGB[i] = 1.055*(rgb[i]**(1/2.4))-0.055
+        sRGB[i] *= 255
+    return sRGB
 
 # inputfile = open(sys.argv[1], 'r')
-inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1depth.txt", 'r')
+inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1srgb.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -154,8 +178,14 @@ while line:
         DEPTH = True
         depth_buffer = [[1 for _ in range(width)] for _ in range(height)]
 
+    if line == "sRGB":
+        SRGB = True
+        currRGB = sRGB_to_linear(currRGB)
+
     if line.startswith("rgb "):
         currRGB = [(lambda x: int(x))(x) for x in line.split()[1:]]
+        if SRGB:
+            currRGB = sRGB_to_linear(currRGB)
         
     if line.startswith("xyzw "):
         x, y, z, w = [(lambda x: float(x))(x) for x in line.split()[1:]]
