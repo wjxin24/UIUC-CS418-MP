@@ -6,7 +6,9 @@ DEPTH = False
 SRGB = False
 HYP = False
 FRUSTUM = False
+CULL = False
 CLIPPLANE = False
+
 
 default_clipplanes = [[1, 0, 0, 1], [-1, 0, 0, 1], [0, 1, 0, 1], \
     [0, -1, 0, 1], [0, 0, 1, 1], [0, 0, -1, 1]]
@@ -58,7 +60,7 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
         top, mid, low = top.divide_w(), mid.divide_w(), low.divide_w()
     else:
         top, mid, low = top.linear(), mid.linear(), low.linear()
-    
+
     if int(top_coor[1]) == top_coor[1] and top_coor[1] == mid_coor[1]:
         # top horizontal line with int y coordinate
         drawline(top, mid)
@@ -227,7 +229,7 @@ def clip(tris, cp):
     return result_tris
 
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1frustum.txt", 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1cull.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -254,6 +256,9 @@ while line:
     if line == "frustum":
         FRUSTUM = True
 
+    if line == "cull":
+        CULL = True
+
     if line.startswith("clipplane "):
         CLIPPLANE = True
         clipplanes.append([(lambda x: float(x))(x) for x in line.split()[1:]])
@@ -271,6 +276,12 @@ while line:
         idx = [(lambda x: int(x))(x) for x in line.split()[1:]]
         tri = [(lambda i: vertices[i] if i < 0 else vertices[i-1])(i) for i in idx]
         tris = [tri] # a list of triangles
+
+        if CULL:
+            if (tri[0].pixel_coor()[0]-tri[1].pixel_coor()[0])*(tri[1].pixel_coor()[1]-tri[2].pixel_coor()[1])-\
+                (tri[0].pixel_coor()[1]-tri[1].pixel_coor()[1])*(tri[1].pixel_coor()[0]-tri[2].pixel_coor()[0])>0:
+                line = inputfile.readline()
+                continue
 
         if FRUSTUM:
             for clipplane in default_clipplanes:
