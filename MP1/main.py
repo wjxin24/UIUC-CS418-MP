@@ -6,9 +6,11 @@ DEPTH = False
 SRGB = False
 HYP = False
 FRUSTUM = False
+CLIPPLANE = False
 
 default_clipplanes = [[1, 0, 0, 1], [-1, 0, 0, 1], [0, 1, 0, 1], \
     [0, -1, 0, 1], [0, 0, 1, 1], [0, 0, -1, 1]]
+clipplanes = []
 
 class Pixel:
     def __init__(self, x, y, z, w, r, g, b):
@@ -252,6 +254,10 @@ while line:
     if line == "frustum":
         FRUSTUM = True
 
+    if line.startswith("clipplane "):
+        CLIPPLANE = True
+        clipplanes.append([(lambda x: float(x))(x) for x in line.split()[1:]])
+
     if line.startswith("rgb "):
         currRGB = [(lambda x: int(x))(x) for x in line.split()[1:]]
         if SRGB:
@@ -268,6 +274,10 @@ while line:
 
         if FRUSTUM:
             for clipplane in default_clipplanes:
+                tris = clip(tris, clipplane)
+
+        if CLIPPLANE:
+            for clipplane in clipplanes:
                 tris = clip(tris, clipplane)
 
         for tri in tris:
