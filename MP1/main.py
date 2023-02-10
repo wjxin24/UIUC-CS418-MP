@@ -5,6 +5,10 @@ from PIL import Image
 DEPTH = False
 SRGB = False
 HYP = False
+FRUSTUM = False
+
+default_clipplanes = [[1, 0, 0, 1], [-1, 0, 0, 1], [0, 1, 0, 1], \
+    [0, -1, 0, 1], [0, 0, 1, 1], [0, 0, -1, 1]]
 
 class Pixel:
     def __init__(self, x, y, z, w, r, g, b):
@@ -31,7 +35,14 @@ class Pixel:
         return Pixel(self.x * k, self.y * k, self.z * k, self.w * k,\
             self.r * k, self.g * k, self.b * k)
     __rmul__ = __mul__
+
+    def __truediv__(self, k):
+        return Pixel(self.x / k, self.y / k, self.z / k, self.w / k,\
+            self.r / k, self.g / k, self.b / k)
     
+    def linear(self):
+        return Pixel(self.x/self.w, self.y/self.w, self.z, self.w, self.r, self.g, self.b)
+
     def divide_w(self):
         return Pixel(self.x/self.w, self.y/self.w, self.z/self.w, 1/self.w,\
             self.r/self.w, self.g/self.w, self.b/self.w)
@@ -43,7 +54,8 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
     top_coor, mid_coor, low_coor = top.pixel_coor(), mid.pixel_coor(), low.pixel_coor()
     if HYP:
         top, mid, low = top.divide_w(), mid.divide_w(), low.divide_w()
-    
+    else:
+        top, mid, low = top.linear(), mid.linear(), low.linear()
     
     if int(top_coor[1]) == top_coor[1] and top_coor[1] == mid_coor[1]:
         # top horizontal line with int y coordinate
@@ -119,15 +131,11 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
 
 # fill the pixels along a horizontal line between left and right vertices
 def drawline(left: Pixel, right: Pixel):
-    if HYP:
-        if left.y < -1:
-            return
-        left_coor, right_coor = ((left.x+1) * width/2, (left.y+1) * height/2), ((right.x+1) * width/2, (right.y+1) * height/2)
-    else:
-        if left.y / left.w < -1:
-            return
-        left_coor, right_coor = left.pixel_coor(), right.pixel_coor()
-   
+    if left.y < -1:
+        return
+    left_coor, right_coor = ((left.x+1) * width/2, (left.y+1) * height/2),\
+         ((right.x+1) * width/2, (right.y+1) * height/2)
+    
     if left_coor[0] == right_coor[0]:
         if left_coor[0] == int(left_coor[0]):
             drawpixel(left)  
@@ -150,9 +158,7 @@ def drawline(left: Pixel, right: Pixel):
 def drawpixel(p: Pixel):
     if HYP:
         p = p.undo_divide()
-        p_x, p_y = round((p.x+1)*width/2), round((p.y+1)*height/2)
-    else:
-        p_x, p_y = round(p.pixel_coor()[0]), round(p.pixel_coor()[1])
+    p_x, p_y = round((p.x+1)*width/2), round((p.y+1)*height/2)
     p_r, p_g, p_b = p.r, p.g, p.b
     if SRGB:
         p_r, p_g, p_b = linear_to_sRGB([p.r, p.g, p.b])
@@ -160,8 +166,12 @@ def drawpixel(p: Pixel):
         p_depth = p.z if HYP else p.z / p.w
         if depth_buffer[p_x][p_y] >= p_depth and p_depth >= -1:
             depth_buffer[p_x][p_y] = p_depth
+            if (p_x >= width or p_y >= height):
+                return
             image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
             print(p_x, p_y)
+        return
+    if (p_x >= width or p_y >= height):
         return
     image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
     print(p_x, p_y)
@@ -187,8 +197,35 @@ def linear_to_sRGB(rgb):
         sRGB[i] *= 255
     return sRGB
 
+def clip(tris, cp):
+    result_tris = []
+    for tri in tris:
+        dist = [0, 0, 0]
+        pos = []
+        neg = []
+        for i in range(3):
+            dist[i] = tri[i].x*cp[0]+tri[i].y*cp[1]+tri[i].z*cp[2]+tri[i].w*cp[3]
+            if dist[i] < 0:
+                neg.append(i)
+            else:
+                pos.append(i)
+        if  len(neg) == 0:
+            result_tris.append(tri)
+        elif len(neg) == 1:
+            new_point0 = (dist[neg[0]]*tri[pos[0]]-dist[pos[0]]*tri[neg[0]])/(dist[neg[0]]-dist[pos[0]])
+            new_point1 = (dist[neg[0]]*tri[pos[1]]-dist[pos[1]]*tri[neg[0]])/(dist[neg[0]]-dist[pos[1]])
+            result_tris.append([new_point0, tri[pos[0]], tri[pos[1]]])
+            result_tris.append([new_point0, new_point1, tri[pos[1]]])
+        elif len(neg) == 2:
+            new_point0 = (dist[pos[0]]*tri[neg[0]]-dist[neg[0]]*tri[pos[0]])/(dist[pos[0]]-dist[neg[0]])
+            new_point1 = (dist[pos[0]]*tri[neg[1]]-dist[neg[1]]*tri[pos[0]])/(dist[pos[0]]-dist[neg[1]])
+            result_tris.append([new_point0, new_point1, tri[pos[0]]])
+        else:
+            pass
+    return result_tris
+
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1hyp.txt", 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1frustum.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -211,6 +248,9 @@ while line:
 
     if line == "hyp":
         HYP = True
+    
+    if line == "frustum":
+        FRUSTUM = True
 
     if line.startswith("rgb "):
         currRGB = [(lambda x: int(x))(x) for x in line.split()[1:]]
@@ -223,9 +263,16 @@ while line:
     
     if line.startswith("tri "):
         idx = [(lambda x: int(x))(x) for x in line.split()[1:]]
-        tri = [(lambda i: vertices[i] if i < 0 else vertices[i-1])(i) for i in idx] 
-        top, mid, low = sorted(tri, key = lambda v: v.pixel_coor()[::-1])
-        DDA(top, mid, low)
+        tri = [(lambda i: vertices[i] if i < 0 else vertices[i-1])(i) for i in idx]
+        tris = [tri] # a list of triangles
+
+        if FRUSTUM:
+            for clipplane in default_clipplanes:
+                tris = clip(tris, clipplane)
+
+        for tri in tris:
+            top, mid, low = sorted(tri, key = lambda v: v.pixel_coor()[::-1])
+            DDA(top, mid, low)
 
     line = inputfile.readline()
 
