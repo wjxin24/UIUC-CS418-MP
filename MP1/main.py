@@ -4,6 +4,7 @@ from PIL import Image
 # keywords
 DEPTH = False
 SRGB = False
+HYP = False
 
 class Pixel:
     def __init__(self, x, y, z, w, r, g, b):
@@ -31,15 +32,24 @@ class Pixel:
             self.r * k, self.g * k, self.b * k)
     __rmul__ = __mul__
     
+    def divide_w(self):
+        return Pixel(self.x/self.w, self.y/self.w, self.z/self.w, 1/self.w,\
+            self.r/self.w, self.g/self.w, self.b/self.w)
+    def undo_divide(self):
+        return Pixel(self.x, self.y, self.z, 1/self.w,\
+            self.r/self.w, self.g/self.w, self.b/self.w)
 
 def DDA(top: Pixel, mid: Pixel, low: Pixel):
     top_coor, mid_coor, low_coor = top.pixel_coor(), mid.pixel_coor(), low.pixel_coor()
-
-    # top horizontal line with int y coordinate
+    if HYP:
+        top, mid, low = top.divide_w(), mid.divide_w(), low.divide_w()
+    
+    
     if int(top_coor[1]) == top_coor[1] and top_coor[1] == mid_coor[1]:
-            drawline(top, mid)
-    else:
-        y = int(top_coor[1]) + 1
+        # top horizontal line with int y coordinate
+        drawline(top, mid)
+    
+    y = int(top_coor[1]) if  int(top_coor[1]) == top_coor[1] else int(top_coor[1]) + 1
         
     step_t_l = 1/(top_coor[1] - low_coor[1]) * (top - low)
     if mid_coor[1] - low_coor[1] != 0:
@@ -51,15 +61,19 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
     if top_coor[1] - mid_coor[1] != 0:
         step_t_m = 1/(top_coor[1] - mid_coor[1]) * (top - mid)
         offset_t_m = (y - top_coor[1]) * step_t_m
-        if (top + step_t_l).pixel_coor()[0] < (top + step_t_m).pixel_coor()[0]:
+        # if mid point on the right
+        if step_t_l.x < step_t_m.x:
             left = top + offset_t_l
             right = top + offset_t_m
 
-            while (y <= mid_coor[1] and y < height):
+            while (y < mid_coor[1] and y < height):
                 drawline(left, right)
                 y += 1
                 left += step_t_l
                 right += step_t_m
+
+            if (mid_coor[1] == low_coor[1]):
+                return
 
             offset_m_l = (y - mid_coor[1]) * step_m_l
             right = mid + offset_m_l
@@ -70,11 +84,12 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
                 left += step_t_l
                 right += step_m_l
 
+        # if mid point on the left
         else:
             left = top + offset_t_m
             right = top + offset_t_l
 
-            while (y <= mid_coor[1] and y < height):
+            while (y < mid_coor[1] and y < height):
                 drawline(left, right)
                 y += 1
                 left += step_t_m
@@ -84,7 +99,7 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
                 return
 
             offset_m_l = (mid_coor[1] -y) * step_m_l
-            left = mid - offset_m_l
+            left = mid + offset_m_l
 
             while (y < low_coor[1] and y < height):
                 drawline(left, right)
@@ -104,9 +119,15 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
 
 # fill the pixels along a horizontal line between left and right vertices
 def drawline(left: Pixel, right: Pixel):
-    if left.y / left.w < -1:
-        return
-    left_coor, right_coor = left.pixel_coor(), right.pixel_coor()
+    if HYP:
+        if left.y < -1:
+            return
+        left_coor, right_coor = ((left.x+1) * width/2, (left.y+1) * height/2), ((right.x+1) * width/2, (right.y+1) * height/2)
+    else:
+        if left.y / left.w < -1:
+            return
+        left_coor, right_coor = left.pixel_coor(), right.pixel_coor()
+   
     if left_coor[0] == right_coor[0]:
         if left_coor[0] == int(left_coor[0]):
             drawpixel(left)  
@@ -123,21 +144,27 @@ def drawline(left: Pixel, right: Pixel):
         pixel += step
     while (x < right_coor[0] and x < width):
         drawpixel(pixel)
-        print(pixel.pixel_coor())
         x += 1
         pixel += step
 
 def drawpixel(p: Pixel):
-    p_x, p_y = round(p.pixel_coor()[0]), round(p.pixel_coor()[1])
+    if HYP:
+        p = p.undo_divide()
+        p_x, p_y = round((p.x+1)*width/2), round((p.y+1)*height/2)
+    else:
+        p_x, p_y = round(p.pixel_coor()[0]), round(p.pixel_coor()[1])
     p_r, p_g, p_b = p.r, p.g, p.b
     if SRGB:
         p_r, p_g, p_b = linear_to_sRGB([p.r, p.g, p.b])
     if DEPTH:
-        if depth_buffer[p_x][p_y] > p.z / p.w and p.z / p.w >= -1:
-            depth_buffer[p_x][p_y] = p.z / p.w
+        p_depth = p.z if HYP else p.z / p.w
+        if depth_buffer[p_x][p_y] >= p_depth and p_depth >= -1:
+            depth_buffer[p_x][p_y] = p_depth
             image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
+            print(p_x, p_y)
         return
     image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
+    print(p_x, p_y)
 
 # convert sRGB to linear color space
 def sRGB_to_linear(rgb):
@@ -160,8 +187,8 @@ def linear_to_sRGB(rgb):
         sRGB[i] *= 255
     return sRGB
 
-# inputfile = open(sys.argv[1], 'r')
-inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1srgb.txt", 'r')
+inputfile = open(sys.argv[1], 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1hyp.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -181,6 +208,9 @@ while line:
     if line == "sRGB":
         SRGB = True
         currRGB = sRGB_to_linear(currRGB)
+
+    if line == "hyp":
+        HYP = True
 
     if line.startswith("rgb "):
         currRGB = [(lambda x: int(x))(x) for x in line.split()[1:]]
