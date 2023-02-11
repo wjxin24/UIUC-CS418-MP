@@ -8,14 +8,15 @@ HYP = False
 FRUSTUM = False
 CULL = False
 CLIPPLANE = False
-
+RGBA = False
 
 default_clipplanes = [[1, 0, 0, 1], [-1, 0, 0, 1], [0, 1, 0, 1], \
     [0, -1, 0, 1], [0, 0, 1, 1], [0, 0, -1, 1]]
 clipplanes = []
+rgba_buf = []
 
 class Pixel:
-    def __init__(self, x, y, z, w, r, g, b):
+    def __init__(self, x, y, z, w, r, g, b, a):
         self.x = x
         self.y = y
         self.z = z
@@ -23,36 +24,37 @@ class Pixel:
         self.r = r
         self.g = g
         self.b = b
+        self.a = a
 
     def pixel_coor(self):
         return (self.x/self.w+1)*width/2,(self.y/self.w+1)*height/2
 
     def __add__(self, A):
         return Pixel(self.x + A.x, self.y + A.y, self.z + A.z, self.w + A.w,\
-            self.r + A.r, self.g + A.g, self.b + A.b)
+            self.r + A.r, self.g + A.g, self.b + A.b, self.a + A.a)
 
     def __sub__(self, A):
         return Pixel(self.x - A.x, self.y - A.y, self.z - A.z, self.w - A.w,\
-            self.r - A.r, self.g - A.g, self.b - A.b)
+            self.r - A.r, self.g - A.g, self.b - A.b, self.a - A.a)
 
     def __mul__(self, k):
         return Pixel(self.x * k, self.y * k, self.z * k, self.w * k,\
-            self.r * k, self.g * k, self.b * k)
+            self.r * k, self.g * k, self.b * k, self.a * k)
     __rmul__ = __mul__
 
     def __truediv__(self, k):
         return Pixel(self.x / k, self.y / k, self.z / k, self.w / k,\
-            self.r / k, self.g / k, self.b / k)
+            self.r / k, self.g / k, self.b / k, self.a / k)
     
     def linear(self):
-        return Pixel(self.x/self.w, self.y/self.w, self.z, self.w, self.r, self.g, self.b)
+        return Pixel(self.x/self.w, self.y/self.w, self.z, self.w, self.r, self.g, self.b, self.a)
 
     def divide_w(self):
         return Pixel(self.x/self.w, self.y/self.w, self.z/self.w, 1/self.w,\
-            self.r/self.w, self.g/self.w, self.b/self.w)
+            self.r/self.w, self.g/self.w, self.b/self.w, self.a/self.w)
     def undo_divide(self):
         return Pixel(self.x, self.y, self.z, 1/self.w,\
-            self.r/self.w, self.g/self.w, self.b/self.w)
+            self.r/self.w, self.g/self.w, self.b/self.w, self.a/self.w)
 
 def DDA(top: Pixel, mid: Pixel, low: Pixel):
     top_coor, mid_coor, low_coor = top.pixel_coor(), mid.pixel_coor(), low.pixel_coor()
@@ -70,8 +72,7 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
     step_t_l = 1/(top_coor[1] - low_coor[1]) * (top - low)
     if mid_coor[1] - low_coor[1] != 0:
         step_m_l = 1/(mid_coor[1] - low_coor[1]) * (mid - low)
-
-    
+   
     offset_t_l = (y - top_coor[1]) * step_t_l
     
     if top_coor[1] - mid_coor[1] != 0:
@@ -163,21 +164,30 @@ def drawpixel(p: Pixel):
     if HYP:
         p = p.undo_divide()
     p_x, p_y = round((p.x+1)*width/2), round((p.y+1)*height/2)
-    p_r, p_g, p_b = p.r, p.g, p.b
+    p_r, p_g, p_b, p_a = p.r, p.g, p.b, p.a    
+    if RGBA:
+        temp = p_a + rgba_buf[p_x][p_y][3] * (1-p_a)
+        prgb = [p_r, p_g, p_b]
+        for i in range(3):
+            prgb[i] = (p_a*prgb[i]+(1-p_a)*rgba_buf[p_x][p_y][3]*rgba_buf[p_x][p_y][i])/temp
+            rgba_buf[p_x][p_y][i] = prgb[i]
+        p_r, p_g, p_b = prgb
+        p_a = temp
+        rgba_buf[p_x][p_y][3] = temp
     if SRGB:
-        p_r, p_g, p_b = linear_to_sRGB([p.r, p.g, p.b])
+        p_r, p_g, p_b = linear_to_sRGB([p_r, p_g, p_b])
     if DEPTH:
         p_depth = p.z if HYP else p.z / p.w
         if depth_buffer[p_x][p_y] >= p_depth and p_depth >= -1:
             depth_buffer[p_x][p_y] = p_depth
             if (p_x >= width or p_y >= height):
                 return
-            image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
+            image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), round(255*p_a)))
             print(p_x, p_y)
         return
     if (p_x >= width or p_y >= height):
         return
-    image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), 255))
+    image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), round(255*p_a)))
     print(p_x, p_y)
 
 # convert sRGB to linear color space
@@ -229,7 +239,7 @@ def clip(tris, cp):
     return result_tris
 
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1cull.txt", 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1rgba.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -238,7 +248,7 @@ width, height = int(linesplit[1]), int(linesplit[2])
 assert width > 0 and height > 0
 filename = linesplit[3]
 image = Image.new("RGBA", (width, height), (0,0,0,0))
-currRGB = [255, 255, 255]
+currRGBA = [255, 255, 255, 1]
 vertices = []
 while line:
     line = line.strip()
@@ -248,7 +258,7 @@ while line:
 
     if line == "sRGB":
         SRGB = True
-        currRGB = sRGB_to_linear(currRGB)
+        currRGBA[:3] = sRGB_to_linear(currRGBA[:3])
 
     if line == "hyp":
         HYP = True
@@ -264,13 +274,20 @@ while line:
         clipplanes.append([(lambda x: float(x))(x) for x in line.split()[1:]])
 
     if line.startswith("rgb "):
-        currRGB = [(lambda x: int(x))(x) for x in line.split()[1:]]
+        currRGBA = [(lambda x: int(x))(x) for x in line.split()[1:]] + [1]
         if SRGB:
-            currRGB = sRGB_to_linear(currRGB)
-        
+            currRGBA[:3] = sRGB_to_linear(currRGBA[:3])
+    
+    if line.startswith("rgba "):
+        RGBA = True
+        if rgba_buf == []:
+            rgba_buf = [[[0,0,0,0] for _ in range(height)] for _ in range(width)]
+        currRGBA = [(lambda x: int(x))(x) for x in line.split()[1:4]] + [float(line.split()[4])]
+        currRGBA[:3] = sRGB_to_linear(currRGBA[:3])      
+
     if line.startswith("xyzw "):
         x, y, z, w = [(lambda x: float(x))(x) for x in line.split()[1:]]
-        vertices.append(Pixel(x, y, z, w, currRGB[0], currRGB[1], currRGB[2]))
+        vertices.append(Pixel(x, y, z, w, currRGBA[0], currRGBA[1], currRGBA[2], currRGBA[3]))
     
     if line.startswith("tri "):
         idx = [(lambda x: int(x))(x) for x in line.split()[1:]]
