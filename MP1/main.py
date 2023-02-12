@@ -9,6 +9,7 @@ FRUSTUM = False
 CULL = False
 CLIPPLANE = False
 RGBA = False
+FSAA = False 
 
 default_clipplanes = [[1, 0, 0, 1], [-1, 0, 0, 1], [0, 1, 0, 1], \
     [0, -1, 0, 1], [0, 0, 1, 1], [0, 0, -1, 1]]
@@ -239,7 +240,7 @@ def clip(tris, cp):
     return result_tris
 
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1rgba.txt", 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1fsaa2.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -268,6 +269,15 @@ while line:
 
     if line == "cull":
         CULL = True
+
+    if line.startswith("fsaa"):
+        FSAA = True
+        RGBA = True
+        level = int(line.split()[1])
+        width *= level
+        height *= level
+        image = Image.new("RGBA", (width, height), (0,0,0,0))
+        rgba_buf = [[[0,0,0,0] for _ in range(height)] for _ in range(width)]
 
     if line.startswith("clipplane "):
         CLIPPLANE = True
@@ -313,6 +323,26 @@ while line:
             DDA(top, mid, low)
 
     line = inputfile.readline()
-
+image.save("fsaa2.png")
+if FSAA:
+    width = int(width / level)
+    height = int(height / level)
+    ave_image = Image.new("RGBA", (width, height), (0,0,0,0))
+    for x in range(width):
+        for y in range(height):
+            rgba_sum = [0, 0, 0, 0]
+            rgba_ave = [0, 0, 0, 0]
+            for i in range(x*level, (x+1)*level):
+                for j in range(y*level, (y+1)*level):
+                    rgba = rgba_buf[i][j]
+                    for c in range(3):
+                        rgba_sum[c] += rgba[c] * rgba[3]
+                    rgba_sum[3] += rgba[3]
+            rgba_ave[3] = rgba_sum[3] / level**2
+            if rgba_ave[3] != 0:
+                rgba_ave[:3] = [i/rgba_sum[3] for i in rgba_sum[:3]]
+            p_r, p_g, p_b = linear_to_sRGB(rgba_ave[:3])
+            ave_image.putpixel([x, y], (round(p_r), round(p_g), round(p_b), round(255*rgba_ave[3])))
+    image = ave_image
 image.save(filename)
 
