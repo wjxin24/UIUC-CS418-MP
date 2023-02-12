@@ -239,8 +239,25 @@ def clip(tris, cp):
             pass
     return result_tris
 
+def fillpoint(radius, p: Pixel):
+    p_coor = p.pixel_coor()
+    x_min = max(0, p_coor[0]-radius)
+    x_max = min(width, p_coor[0]+radius)
+    y_min = max(0, p_coor[1]-radius)
+    y_max = min(height, p_coor[1]+radius)
+    x_min =  int(x_min) if x_min == int(x_min) else int(x_min)+1
+    y_min =  int(y_min) if y_min == int(y_min) else int(y_min)+1
+    x_max =  int(x_max)-1 if x_max == int(x_max) else int(x_max)
+    y_max =  int(y_max)-1 if y_max == int(y_max) else int(y_max)
+    p_depth = p.z if HYP else p.z / p.w
+    for x in range(x_min, x_max+1):
+        for y in range(y_min, y_max+1):
+            if depth_buffer[x][y] >= p_depth and p_depth >= -1:
+                depth_buffer[x][y] = p_depth
+                image.im.putpixel((x, y), (p.r, p.g, p.b, p.a*255))
+
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1fsaa2.txt", 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1point.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
@@ -299,6 +316,12 @@ while line:
         x, y, z, w = [(lambda x: float(x))(x) for x in line.split()[1:]]
         vertices.append(Pixel(x, y, z, w, currRGBA[0], currRGBA[1], currRGBA[2], currRGBA[3]))
     
+    if line.startswith("point "):
+        pointsize = float(line.split()[1])
+        temp = int(line.split()[2])
+        point = vertices[temp-1 if temp>=0 else temp]
+        fillpoint(pointsize/2, point)
+
     if line.startswith("tri "):
         idx = [(lambda x: int(x))(x) for x in line.split()[1:]]
         tri = [(lambda i: vertices[i] if i < 0 else vertices[i-1])(i) for i in idx]
@@ -323,7 +346,7 @@ while line:
             DDA(top, mid, low)
 
     line = inputfile.readline()
-image.save("fsaa2.png")
+
 if FSAA:
     width = int(width / level)
     height = int(height / level)
@@ -344,5 +367,6 @@ if FSAA:
             p_r, p_g, p_b = linear_to_sRGB(rgba_ave[:3])
             ave_image.putpixel([x, y], (round(p_r), round(p_g), round(p_b), round(255*rgba_ave[3])))
     image = ave_image
+
 image.save(filename)
 
