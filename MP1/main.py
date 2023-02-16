@@ -184,12 +184,12 @@ def drawpixel(p: Pixel):
             if (p_x >= width or p_y >= height):
                 return
             image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), round(255*p_a)))
-            print(p_x, p_y)
+            # print(p_x, p_y)
         return
     if (p_x >= width or p_y >= height):
         return
     image.im.putpixel((p_x, p_y), (round(p_r), round(p_g), round(p_b), round(255*p_a)))
-    print(p_x, p_y)
+    # print(p_x, p_y)
 
 # convert sRGB to linear color space
 def sRGB_to_linear(rgb):
@@ -257,7 +257,6 @@ def fillpoint(radius, p: Pixel):
                 image.im.putpixel((x, y), (p.r, p.g, p.b, p.a*255))
 
 inputfile = open(sys.argv[1], 'r')
-# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1point.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
