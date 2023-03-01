@@ -116,7 +116,7 @@ def DDA(top: Pixel, mid: Pixel, low: Pixel):
             if (mid_coor[1] == low_coor[1]):
                 return
 
-            offset_m_l = (mid_coor[1] -y) * step_m_l
+            offset_m_l = (y-mid_coor[1]) * step_m_l
             left = mid + offset_m_l
 
             while (y < low_coor[1] and y < height):
@@ -257,6 +257,7 @@ def fillpoint(radius, p: Pixel):
                 image.im.putpixel((x, y), (p.r, p.g, p.b, p.a*255))
 
 inputfile = open(sys.argv[1], 'r')
+# inputfile = open("D:\\0UIUC\\CS418\\MP1\\mp1files\\mp1indexing.txt", 'r')
 line = inputfile.readline()
 while not line.strip().startswith("png"):
     line = inputfile.readline()
