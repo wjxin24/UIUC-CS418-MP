@@ -1,3 +1,9 @@
+// global variables
+let jsondata  /* json data fetched from geometry.json */
+let cpuBuf /* cpu buffer to store the result of gl.createBuffer() */
+let posBuf  /* Float32Array for current vertex positions */
+
+
 /**
  *Compiles and links vertex and fragment shaders to create a WebGL program.
  *@param {string} vs_source The source code of the vertex shader.
@@ -30,6 +36,7 @@ function compileAndLinkGLSL(vs_source, fs_source) {
   }
 }
 
+
 /**
  * Sets up a new geometry for rendering with WebGL.
  *
@@ -41,6 +48,7 @@ function setupGeomery(geom) {
   gl.bindVertexArray(triangleArray)
 
   Object.entries(geom.attributes).forEach(([name,data]) => {
+      console.log([name,data])
       let buf = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf)
       let f32 = new Float32Array(data.flat())
@@ -49,8 +57,9 @@ function setupGeomery(geom) {
       let loc = gl.getAttribLocation(program, name)
       gl.vertexAttribPointer(loc, data[0].length, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(loc)
+      console.log(f32)
   })
-
+  
   var indices = new Uint16Array(geom.triangles.flat())
   var indexBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
@@ -64,6 +73,50 @@ function setupGeomery(geom) {
   }
 }
 
+
+/**
+ * Sets up a new geometry for CPU based rendering.
+ * 
+ * @param {object} geom The source code of the geometry.
+ * @returns {object} The setup geometry.
+ */
+function setupGeomeryCPU(geom) {
+  var triangleArray = gl.createVertexArray()
+  gl.bindVertexArray(triangleArray)
+
+  Object.entries(geom.attributes).forEach(([name,data]) => {
+      console.log([name,data])
+      if (name == "position") { // position buffer will have changing data
+        cpuBuf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
+        posBuf = new Float32Array(data.flat())
+        console.log("posBuf",posBuf)
+        gl.bufferData(gl.ARRAY_BUFFER, posBuf, gl.DYNAMIC_DRAW)
+      }
+      else {
+        let buf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+        let f32 = new Float32Array(data.flat())
+        gl.bufferData(gl.ARRAY_BUFFER, f32, gl.STATIC_DRAW)
+      }
+
+      let loc = gl.getAttribLocation(program, name)
+      gl.vertexAttribPointer(loc, data[0].length, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(loc)
+  })
+  
+  var indices = new Uint16Array(geom.triangles.flat())
+  var indexBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+
+  return {
+      mode: gl.TRIANGLES,
+      count: indices.length,
+      type: gl.UNSIGNED_SHORT,
+      vao: triangleArray
+  }
+}
 
 function draw(milliseconds) {
     gl.clear(gl.COLOR_BUFFER_BIT)
@@ -82,7 +135,6 @@ function draw(milliseconds) {
  * The "I" logo with changing size moves along a clockwise path.
  */
 function drawlogo(milliseconds) {
-  // gl.clearColor(1, 0.373, 0.02, 1)
   gl.clear(gl.COLOR_BUFFER_BIT) 
   gl.useProgram(window.program)
 
@@ -96,6 +148,25 @@ function drawlogo(milliseconds) {
   gl.bindVertexArray(window.geom.vao)
   gl.drawElements(geom.mode, geom.count, geom.type, 0)
   window.pending = requestAnimationFrame(drawlogo)
+}
+
+/**
+ * Animation callback for CPU-based vertex movement
+ */
+function drawcpu(milliseconds) {
+  gl.clear(gl.COLOR_BUFFER_BIT) 
+
+  for (i=0; i<posBuf.length/2; i+=2) {
+      posBuf[i] -= 0.005*Math.sin(0.005*milliseconds)
+      posBuf[i+posBuf.length/2] += 0.005*Math.sin(0.005*milliseconds)
+  }
+
+  gl.bindVertexArray(window.cpugeom.vao)
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
+  gl.bufferData(gl.ARRAY_BUFFER, posBuf, gl.DYNAMIC_DRAW)
+  gl.drawElements(cpugeom.mode, cpugeom.count, cpugeom.type, 0)
+  window.pending = requestAnimationFrame(drawcpu)
 }
 
 /**
@@ -113,6 +184,10 @@ function draw2() {
 function radioChanged() {
   let chosen = document.querySelector('input[name="example"]:checked').value
   cancelAnimationFrame(window.pending)
+  if (chosen == "cpu") {
+    cpuBasedSetup()
+  }
+  
   window.pending = requestAnimationFrame(window['draw'+chosen])
 }
 
@@ -132,10 +207,16 @@ async function setup() {
   let vs = await fetch('vertex.glsl').then(res => res.text())
   let fs = await fetch('fragment.glsl').then(res => res.text())
   compileAndLinkGLSL(vs,fs)
-  let data = await fetch('ex03-geometry.json').then(r=>r.json())
-  window.geom = setupGeomery(data)
+  jsondata = await fetch('geometry.json').then(r=>r.json())
+  window.geom = setupGeomery(jsondata)
   requestAnimationFrame(drawlogo)
 }
+
+/** Initialize geometry for CPU based vertex movement */
+async function cpuBasedSetup() {
+  window.cpugeom = setupGeomeryCPU(jsondata)
+}
+
 
 /**
  * Initializes WebGL and event handlers after page is fully loaded.
