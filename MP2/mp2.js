@@ -170,6 +170,25 @@ function drawcpu(milliseconds) {
 }
 
 /**
+ * Animation callback for GPU-based vertex movement
+ */
+function drawgpu(milliseconds) {
+  gl.clear(gl.COLOR_BUFFER_BIT) 
+  gl.useProgram(window.program)
+
+  let secondsBindPoint = gl.getUniformLocation(program, 'seconds')
+  gl.uniform1f(secondsBindPoint, milliseconds/500)
+
+  // set gpuFlag in vertex shader to be true
+  let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
+  gl.uniform1i(gpuFlagBindPoint, true)
+
+  gl.bindVertexArray(window.geom.vao)
+  gl.drawElements(geom.mode, geom.count, geom.type, 0)
+  window.pending = requestAnimationFrame(drawgpu)
+}
+
+/**
 * Animation callback for the second display. See {draw1} for more.
 *
 * Fills the screen with Illini Blue
@@ -187,7 +206,9 @@ function radioChanged() {
   if (chosen == "cpu") {
     cpuBasedSetup()
   }
-  
+  // reset previous flags in vertex shader
+  let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
+  gl.uniform1i(gpuFlagBindPoint, false)
   window.pending = requestAnimationFrame(window['draw'+chosen])
 }
 
