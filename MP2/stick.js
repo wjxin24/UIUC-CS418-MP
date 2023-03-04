@@ -1,47 +1,19 @@
-function compileAndLinkGLSL(vs_source, fs_source) {
-    let vs = gl.createShader(gl.VERTEX_SHADER)
-    gl.shaderSource(vs, vs_source)
-    gl.compileShader(vs)
-    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(vs))
-        throw Error("Vertex shader compilation failed")
-    }
-
-    let fs = gl.createShader(gl.FRAGMENT_SHADER)
-    gl.shaderSource(fs, fs_source)
-    gl.compileShader(fs)
-    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(fs))
-        throw Error("Fragment shader compilation failed")
-    }
-
-    window.program = gl.createProgram()
-    gl.attachShader(program, vs)
-    gl.attachShader(program, fs)
-    gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program))
-        throw Error("Linking failed")
-    }
-}
-
+/**
+ * Animation callback for the walking stick.
+ */
 function drawstick(milliseconds) {
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.useProgram(program)
-    // const connection = gl.LINES
-    // const offset = 0
-    // const count = 12
-    // gl.drawArrays(gl.LINES, offset, count)
+
     let secondsBindPoint = gl.getUniformLocation(program, 'seconds')
-    gl.uniform1f(secondsBindPoint, milliseconds/1000)
-
-
+    gl.uniform1f(secondsBindPoint, (milliseconds/1000)%50)
 
     gl.bindVertexArray(window.geom.vao)
     gl.drawElements(geom.mode, geom.count, geom.type, 0)
     window.pending = requestAnimationFrame(drawstick)
 }
 
+/** Initialize WebGL and load geometry and shaders for the walking stick*/
 async function setupStick(event) {
     window.gl = document.querySelector('canvas').getContext('webgl2')
     let vs = await fetch('stick-vertex.glsl').then(res => res.text())
@@ -52,6 +24,12 @@ async function setupStick(event) {
     requestAnimationFrame(drawstick)
 }
 
+/**
+ * Sets up a new geometry for rendering the stick figure.
+ *
+ * @param {object} geom The source code of the geometry.
+ * @returns {object} The setup geometry.
+ */
 function setupGeomeryStick(geom) {
   var lineArray = gl.createVertexArray()
   gl.bindVertexArray(lineArray)

@@ -202,12 +202,20 @@ function draw2() {
 function radioChanged() {
   let chosen = document.querySelector('input[name="example"]:checked').value
   cancelAnimationFrame(window.pending)
+ 
+  // reset previous flags in vertex shader
+  // let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
+  // gl.uniform1i(gpuFlagBindPoint, false)
+  if (chosen == "stick") {
+    setupStick()
+  }
   if (chosen == "cpu") {
+    setup()
     cpuBasedSetup()
   }
-  // reset previous flags in vertex shader
-  let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
-  gl.uniform1i(gpuFlagBindPoint, false)
+  if (chosen == "logo" || chosen == "gpu") {
+    setup()
+  }
   window.pending = requestAnimationFrame(window['draw'+chosen])
 }
 
@@ -229,7 +237,7 @@ async function setup() {
   compileAndLinkGLSL(vs,fs)
   jsondata = await fetch('geometry.json').then(r=>r.json())
   window.geom = setupGeomery(jsondata)
-  requestAnimationFrame(drawlogo)
+  // requestAnimationFrame(drawlogo)
 }
 
 /** Initialize geometry for CPU based vertex movement */
@@ -248,6 +256,7 @@ async function cpuBasedSetup() {
 window.addEventListener('load',(event)=>{
   setup()
   resizeCanvas()
+  requestAnimationFrame(drawlogo)
   window.gl = document.querySelector('canvas').getContext('webgl2')
   document.querySelectorAll('input[name="example"]').forEach(elem => {
       elem.addEventListener('change', radioChanged)
