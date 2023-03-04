@@ -12,7 +12,7 @@ out vec4 vColor;
 void main() {
     vColor = color;
     if (gpuFlag) {
-        if (position.y > float(0)) {
+        if (position.y > float(0)) {    // movement for the upper logo
             gl_Position.x = position.x + 0.1*sin(seconds);
         } else {
             gl_Position.x = position.x - 0.1*sin(seconds);

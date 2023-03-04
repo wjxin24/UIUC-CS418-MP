@@ -187,16 +187,6 @@ function drawgpu(milliseconds) {
   window.pending = requestAnimationFrame(drawgpu)
 }
 
-/**
-* Animation callback for the second display. See {draw1} for more.
-*
-* Fills the screen with Illini Blue
-*/
-function draw2() {
-  gl.clearColor(0.075, 0.16, 0.292, 1)
-  gl.clear(gl.COLOR_BUFFER_BIT)
-  window.pending = requestAnimationFrame(draw2)
-}
 
 /** Callback for when the radio button selection changes */
 function radioChanged() {
@@ -206,6 +196,9 @@ function radioChanged() {
   // reset previous flags in vertex shader
   // let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
   // gl.uniform1i(gpuFlagBindPoint, false)
+  if (chosen == "collision") {
+    setupCollision()
+  }
   if (chosen == "stick") {
     setupStick()
   }
