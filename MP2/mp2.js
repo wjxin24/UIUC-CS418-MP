@@ -48,7 +48,6 @@ function setupGeomery(geom) {
   gl.bindVertexArray(triangleArray)
 
   Object.entries(geom.attributes).forEach(([name,data]) => {
-      console.log([name,data])
       let buf = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf)
       let f32 = new Float32Array(data.flat())
