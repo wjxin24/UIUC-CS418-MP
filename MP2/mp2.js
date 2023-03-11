@@ -140,6 +140,7 @@ function drawlogo(milliseconds) {
   let secondsBindPoint = gl.getUniformLocation(program, 'seconds')
   gl.uniform1f(secondsBindPoint, milliseconds/1000)
 
+  // transform matrix
   m = m4mul(m4trans(0.5*Math.sin(0.001*milliseconds),0.5*Math.cos(0.001*milliseconds),0), m4scale(0.5*Math.sin(0.0005*milliseconds),0.5*Math.sin(0.0005*milliseconds),0))
   let mBindPoint = gl.getUniformLocation(program, 'm')
   gl.uniformMatrix4fv(mBindPoint, false,  m)
@@ -192,12 +193,12 @@ function drawgpu(milliseconds) {
 function radioChanged() {
   let chosen = document.querySelector('input[name="example"]:checked').value
   cancelAnimationFrame(window.pending)
- 
-  // reset previous flags in vertex shader
-  // let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
-  // gl.uniform1i(gpuFlagBindPoint, false)
+
   if (chosen == "collision") {
     setupCollision()
+  }
+  if (chosen == "psychedelic") {
+    setupPsychedelic()
   }
   if (chosen == "stick") {
     setupStick()
@@ -230,7 +231,7 @@ async function setup() {
   compileAndLinkGLSL(vs,fs)
   jsondata = await fetch('geometry.json').then(r=>r.json())
   window.geom = setupGeomery(jsondata)
-  // requestAnimationFrame(drawlogo)
+  requestAnimationFrame(drawlogo)
 }
 
 /** Initialize geometry for CPU based vertex movement */
@@ -248,11 +249,11 @@ async function cpuBasedSetup() {
  */
 window.addEventListener('load',(event)=>{
   setup()
-  resizeCanvas()
-  requestAnimationFrame(drawlogo)
+  resizeCanvas() 
   window.gl = document.querySelector('canvas').getContext('webgl2')
   document.querySelectorAll('input[name="example"]').forEach(elem => {
       elem.addEventListener('change', radioChanged)
   })
+  // requestAnimationFrame(drawlogo)
   radioChanged()
 })
