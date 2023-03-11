@@ -1,9 +1,3 @@
-// global variables
-let jsondata  /* json data fetched from geometry.json */
-let cpuBuf /* cpu buffer to store the result of gl.createBuffer() */
-let posBuf  /* Float32Array for current vertex positions */
-
-
 /**
  *Compiles and links vertex and fragment shaders to create a WebGL program.
  *@param {string} vs_source The source code of the vertex shader.
@@ -73,50 +67,6 @@ function setupGeomery(geom) {
 }
 
 
-/**
- * Sets up a new geometry for CPU based rendering.
- * 
- * @param {object} geom The source code of the geometry.
- * @returns {object} The setup geometry.
- */
-function setupGeomeryCPU(geom) {
-  var triangleArray = gl.createVertexArray()
-  gl.bindVertexArray(triangleArray)
-
-  Object.entries(geom.attributes).forEach(([name,data]) => {
-      console.log([name,data])
-      if (name == "position") { // position buffer will have changing data
-        cpuBuf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
-        posBuf = new Float32Array(data.flat())
-        console.log("posBuf",posBuf)
-        gl.bufferData(gl.ARRAY_BUFFER, posBuf, gl.DYNAMIC_DRAW)
-      }
-      else {
-        let buf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-        let f32 = new Float32Array(data.flat())
-        gl.bufferData(gl.ARRAY_BUFFER, f32, gl.STATIC_DRAW)
-      }
-
-      let loc = gl.getAttribLocation(program, name)
-      gl.vertexAttribPointer(loc, data[0].length, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(loc)
-  })
-  
-  var indices = new Uint16Array(geom.triangles.flat())
-  var indexBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
-
-  return {
-      mode: gl.TRIANGLES,
-      count: indices.length,
-      type: gl.UNSIGNED_SHORT,
-      vao: triangleArray
-  }
-}
-
 function draw(milliseconds) {
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.useProgram(program)
@@ -150,43 +100,9 @@ function drawlogo(milliseconds) {
   window.pending = requestAnimationFrame(drawlogo)
 }
 
-/**
- * Animation callback for CPU-based vertex movement
- */
-function drawcpu(milliseconds) {
-  gl.clear(gl.COLOR_BUFFER_BIT) 
 
-  for (i=0; i<posBuf.length/2; i+=2) {
-      posBuf[i] -= 0.005*Math.sin(0.005*milliseconds)
-      posBuf[i+posBuf.length/2] += 0.005*Math.sin(0.005*milliseconds)
-  }
 
-  gl.bindVertexArray(window.cpugeom.vao)
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
-  gl.bufferData(gl.ARRAY_BUFFER, posBuf, gl.DYNAMIC_DRAW)
-  gl.drawElements(cpugeom.mode, cpugeom.count, cpugeom.type, 0)
-  window.pending = requestAnimationFrame(drawcpu)
-}
-
-/**
- * Animation callback for GPU-based vertex movement
- */
-function drawgpu(milliseconds) {
-  gl.clear(gl.COLOR_BUFFER_BIT) 
-  gl.useProgram(window.program)
-
-  let secondsBindPoint = gl.getUniformLocation(program, 'seconds')
-  gl.uniform1f(secondsBindPoint, milliseconds/500)
-
-  // set gpuFlag in vertex shader to be true
-  let gpuFlagBindPoint = gl.getUniformLocation(program, 'gpuFlag')
-  gl.uniform1i(gpuFlagBindPoint, true)
-
-  gl.bindVertexArray(window.geom.vao)
-  gl.drawElements(geom.mode, geom.count, geom.type, 0)
-  window.pending = requestAnimationFrame(drawgpu)
-}
 
 
 /** Callback for when the radio button selection changes */
@@ -204,10 +120,12 @@ function radioChanged() {
     setupStick()
   }
   if (chosen == "cpu") {
-    setup()
     cpuBasedSetup()
   }
-  if (chosen == "logo" || chosen == "gpu") {
+  if (chosen == "gpu") {
+    gpuBasedSetup()
+  }
+  if (chosen == "logo") {
     setup()
   }
   window.pending = requestAnimationFrame(window['draw'+chosen])
@@ -229,14 +147,9 @@ async function setup() {
   let vs = await fetch('vertex.glsl').then(res => res.text())
   let fs = await fetch('fragment.glsl').then(res => res.text())
   compileAndLinkGLSL(vs,fs)
-  jsondata = await fetch('geometry.json').then(r=>r.json())
-  window.geom = setupGeomery(jsondata)
+  let data = await fetch('geometry.json').then(r=>r.json())
+  window.geom = setupGeomery(data)
   requestAnimationFrame(drawlogo)
-}
-
-/** Initialize geometry for CPU based vertex movement */
-async function cpuBasedSetup() {
-  window.cpugeom = setupGeomeryCPU(jsondata)
 }
 
 
