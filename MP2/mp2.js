@@ -50,7 +50,6 @@ function setupGeomery(geom) {
       let loc = gl.getAttribLocation(program, name)
       gl.vertexAttribPointer(loc, data[0].length, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(loc)
-      console.log(f32)
   })
   
   var indices = new Uint16Array(geom.triangles.flat())
@@ -65,18 +64,6 @@ function setupGeomery(geom) {
       vao: triangleArray
   }
 }
-
-
-function draw(milliseconds) {
-    gl.clear(gl.COLOR_BUFFER_BIT)
-    gl.useProgram(program)
-    let secondsBindPoint = gl.getUniformLocation(program, 'seconds')
-    gl.uniform1f(secondsBindPoint, milliseconds/1000)
-    gl.bindVertexArray(window.geom.vao)
-    gl.drawElements(geom.mode, geom.count, geom.type, 0)
-    window.animation = requestAnimationFrame(draw)
-}
-
 
 
 /**
@@ -101,15 +88,11 @@ function drawlogo(milliseconds) {
 }
 
 
-
-
-
-
 /** Callback for when the radio button selection changes */
 function radioChanged() {
   let chosen = document.querySelector('input[name="example"]:checked').value
   cancelAnimationFrame(window.pending)
-
+  // re-setup for each chosen animation
   if (chosen == "collision") {
     setupCollision()
   }
@@ -128,6 +111,9 @@ function radioChanged() {
   if (chosen == "logo") {
     setup()
   }
+  if (chosen == "mouse") {
+    setupMouse()
+  }
   window.pending = requestAnimationFrame(window['draw'+chosen])
 }
 
@@ -141,7 +127,7 @@ function resizeCanvas() {
   else c.height = c.width
 }
 
-/** Initialize WebGL and load geometry and shaders */
+/** Initialize WebGL and load geometry and shaders for the "I" logo*/
 async function setup() {
   window.gl = document.querySelector('canvas').getContext('webgl2')
   let vs = await fetch('vertex.glsl').then(res => res.text())
@@ -155,10 +141,6 @@ async function setup() {
 
 /**
  * Initializes WebGL and event handlers after page is fully loaded.
- * This example uses only `gl.clear` so it doesn't need any shaders, etc;
- * any real program would initialize models, shaders, and programs for each
- * display and store them for future use before calling `radioChanged` and
- * thus initializing the render.
  */
 window.addEventListener('load',(event)=>{
   setup()
@@ -167,6 +149,5 @@ window.addEventListener('load',(event)=>{
   document.querySelectorAll('input[name="example"]').forEach(elem => {
       elem.addEventListener('change', radioChanged)
   })
-  // requestAnimationFrame(drawlogo)
   radioChanged()
 })

@@ -14,7 +14,7 @@ function drawgpu(milliseconds) {
 }
 
 
-/** Initialize WebGL and load geometry and shaders for the psychedelic */
+/** Initialize WebGL and load geometry and shaders for the gpu based vertex movement */
 async function gpuBasedSetup() {
   window.gl = document.querySelector('canvas').getContext('webgl2')
   let vs = await fetch('gpu-vertex.glsl').then(res => res.text())

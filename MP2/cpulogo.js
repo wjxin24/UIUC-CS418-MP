@@ -13,12 +13,10 @@ function setupGeomeryCPU(geom) {
     gl.bindVertexArray(triangleArray)
   
     Object.entries(geom.attributes).forEach(([name,data]) => {
-        console.log([name,data])
         if (name == "position") { // position buffer will have changing data
           cpuBuf = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
           posBuf = new Float32Array(data.flat())
-          console.log("posBuf",posBuf)
           gl.bufferData(gl.ARRAY_BUFFER, posBuf, gl.DYNAMIC_DRAW)
         }
         else {
@@ -51,12 +49,13 @@ function setupGeomeryCPU(geom) {
  */
 function drawcpu(milliseconds) {
     gl.clear(gl.COLOR_BUFFER_BIT) 
-    // console.log("posBuf",posBuf)
+
+    // move upper half and lower half of the "I" logo seperately
     for (i=0; i<12; i+=2) {
         posBuf[i] -= 0.005*Math.sin(0.005*milliseconds)
         posBuf[i+posBuf.length/2] += 0.005*Math.sin(0.005*milliseconds)
     }
-    // console.log("posBuf",posBuf)
+
     gl.bindVertexArray(window.cpugeom.vao)
   
     gl.bindBuffer(gl.ARRAY_BUFFER, cpuBuf)
@@ -65,7 +64,7 @@ function drawcpu(milliseconds) {
     window.pending = requestAnimationFrame(drawcpu)
 }
 
-/** Initialize geometry for CPU based vertex movement */
+/** Initialize WebGL and load geometry and shaders for CPU based vertex movement */
 async function cpuBasedSetup() {
     window.gl = document.querySelector('canvas').getContext('webgl2')
     let vs = await fetch('vertex.glsl').then(res => res.text())
