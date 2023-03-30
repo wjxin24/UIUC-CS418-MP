@@ -80,7 +80,13 @@ function draw() {
 
     gl.bindVertexArray(geom.vao)
 
-    gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), normalize([1,1,1]))
+    let lightdir = normalize([1,1,1])
+    let halfway = normalize(add(lightdir, [0,0,1]))
+
+    gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), normalize([10,5,5]))
+    gl.uniform3fv(gl.getUniformLocation(program, 'halfway'), halfway)
+    gl.uniform3fv(gl.getUniformLocation(program, 'lightcolor'), [1,.5,1])
+
     gl.uniform4fv(gl.getUniformLocation(program, 'color'), IlliniOrange)
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
@@ -95,7 +101,7 @@ function timeStep(milliseconds) {
     // window.m = m4scale(0.5,0.5,0.5)
     // window.m = m4mul(m4rotZ(seconds), m4rotX(-Math.PI/2))
     const angle = 0.25* Math.PI * Math.sin(seconds/2);
-    window.m = m4mul(m4rotZ(angle),m4scale(1,01,1))
+    window.m = m4rotZ(angle)
     window.v = m4view([0,-3 ,1], [0,0,0], [0,1,0])
     // window.v = IdentityMatrix
 
@@ -159,7 +165,7 @@ function createGrid(n) {
  * @param {int} frac   number of fractures
  */
 function faultPlane(geom, n, frac) {
-    let h = 0.5   // constant
+    let h = 0.2   // constant
     for (let i=0; i<frac; i++) {
         // generate a random point
         let x = Math.floor(Math.random() * (n-1))
@@ -167,7 +173,6 @@ function faultPlane(geom, n, frac) {
         const p = geom.attributes.position[x*n+y]   // random point p
         let theta = Math.random() * 360
         let vn = [Math.cos(theta), Math.sin(theta), 0]  // random normal vector n
-        console.log("p:",p," vn:", vn)
         for (let i=0; i<geom.attributes.position.length; i+=1) {
             // test which side of plane that vertex falls on
             let b = geom.attributes.position[i]
@@ -176,7 +181,7 @@ function faultPlane(geom, n, frac) {
             }
             else {geom.attributes.position[i][2] -= h}
         }
-        h *= 0.8
+        h *= 0.9
     }
     return geom
 }
