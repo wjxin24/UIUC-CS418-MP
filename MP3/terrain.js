@@ -83,11 +83,15 @@ function draw() {
     let lightdir = normalize([1,1,1])
     let halfway = normalize(add(lightdir, [0,0,1]))
 
-    gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), normalize([10,5,5]))
+    gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), lightdir)
     gl.uniform3fv(gl.getUniformLocation(program, 'halfway'), halfway)
-    gl.uniform3fv(gl.getUniformLocation(program, 'lightcolor'), [1,.5,1])
+    gl.uniform3fv(gl.getUniformLocation(program, 'lightcolor'), [1,1,1])
 
-    gl.uniform4fv(gl.getUniformLocation(program, 'color'), IlliniOrange)
+    // gl.uniform1f(gl.getUniformLocation(program, 'zmax'), window.zmax)
+    // gl.uniform1f(gl.getUniformLocation(program, 'zmin'), window.zmin)
+    // console.log("zmax, zmin", zmax, zmin)
+
+    // gl.uniform4fv(gl.getUniformLocation(program, 'color'), IlliniOrange)
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
     gl.drawElements(geom.mode, geom.count, geom.type, 0)
@@ -197,6 +201,7 @@ function faultPlane(geom, n, frac) {
         geom.attributes.position[i][2] = (geom.attributes.position[i][2]-zmin)/(zmax-zmin)*h-h/2
     }
 
+    // window.heightmax = 
     return geom
 }
 
