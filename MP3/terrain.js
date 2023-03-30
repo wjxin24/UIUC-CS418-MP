@@ -140,7 +140,6 @@ function createGrid(n) {
     for (let x = 0; x < n; x++) {
         for (let y = 0; y < n; y++) {
             position.push([-1+y*2/(n-1), 1-x*2/(n-1), 0])
-            console.log([-1+y*2/(n-1), 1-x*2/(n-1), 0])
             if (x != n-1 && y != n-1) {
                 let i = x*n + y
                 triangles.push([i, i+n, i+1])
@@ -161,11 +160,13 @@ function createGrid(n) {
 
 /**
  * Generate random fault planes
- * @param {int} n      grid size
- * @param {int} frac   number of fractures
+ * @param geom   grid geometry
+ * @param n      grid size
+ * @param frac   number of fractures
+ * @returns      grid geometry
  */
 function faultPlane(geom, n, frac) {
-    let h = 0.2   // constant
+    let delta = 1   // initial delta
     for (let i=0; i<frac; i++) {
         // generate a random point
         let x = Math.floor(Math.random() * (n-1))
@@ -177,12 +178,25 @@ function faultPlane(geom, n, frac) {
             // test which side of plane that vertex falls on
             let b = geom.attributes.position[i]
             if (dot(sub(b, p), vn) >= 0) {
-                geom.attributes.position[i][2] += h
+                geom.attributes.position[i][2] += delta
             }
-            else {geom.attributes.position[i][2] -= h}
+            else {geom.attributes.position[i][2] -= delta}
         }
-        h *= 0.9
+        delta *= 0.95    // scale down delta for every slice
     }
+
+    // control vertical separation
+    let h = 1 // constant
+    let zmax = 0
+    let zmin = 0
+    for (let i=0; i<geom.attributes.position.length; i+=1) {
+        zmax = Math.max(geom.attributes.position[i][2], zmax)
+        zmin = Math.min(geom.attributes.position[i][2], zmin)
+    }
+    for (let i=0; i<geom.attributes.position.length; i+=1) {
+        geom.attributes.position[i][2] = (geom.attributes.position[i][2]-zmin)/(zmax-zmin)*h-h/2
+    }
+
     return geom
 }
 
