@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CS 418 Terrain project</title>
+    <script src="scene-option-tree.js"></script><!-- handles controls -->
+
+    <script src="math.js"></script>
+    <script src="terrain.js"></script>
+
+<script>// configures controls
+/**
+ * Modify this object to chose what options you want in the control pane.
+ * Top-level entries become top-section radio buttons.
+ * Nested entries become lower-section inputs of various types.
+ */
+var controlOptions =
+  {"terrain":
+    {"label":"Required: Faulting-method terrain"
+    ,"options":
+      {"resolution":{"type":"number","default":100,"label":"Grid size"}
+      ,"slices":{"type":"number","default":100,"label":"Fractures"}
+      }
+    }
+  }
+</script>
+
+
+
+
+<!-- DO NOT MODIFY anything below this line -->
+<style>
+    body { margin: 0; border: none; padding: 0; display: flex; }
+    .controls {
+        width: min(50%, 20em); padding: 1em;
+        flex: 0 0 min(50%, 20em);
+    }
+    .controls label { display: block; }
+    .display {
+        flex-grow: 1; height: 100vh;
+        line-height: 0rem;
+    }
+</style>
+</head>
+<body>
+    <div class="controls">
+        <form>
+        <div id="set1"></div>
+        <hr/>
+        <div id="set2"></div>
+        <hr/>
+        <input type="submit" value="Generate object"/>
+        </form>
+    </div>
+    <div class="display"><canvas width="500" height="500"></canvas></div>
+</body>
+</html>
