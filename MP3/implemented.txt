@@ -1,2 +1,3 @@
 Shiny
 Height-based color ramp
+Rocky cliffs

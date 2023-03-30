@@ -3,6 +3,7 @@ precision highp float;
 
 in vec3 fnormal;
 in vec4 fposition;
+in float init_norm_z;
 
 uniform vec3 lightdir;
 uniform vec3 lightcolor;
@@ -32,8 +33,17 @@ vec3 rainbowColor(float z) {
 
 void main() {
     vec3 n = normalize(fnormal);
+    vec3 color;
     float lambert = max(dot(lightdir, n), 0.0);
     float blinn = pow(max(dot(halfway, n), 0.0), 150.0);
-    vec3 rainbowColor = rainbowColor(fposition.z);
-    fragColor = vec4(rainbowColor * lambert + (lightcolor*blinn)*5.0, 1.0);
+    float blinnBrightness = 5.0;
+    if (init_norm_z < 0.4 && init_norm_z > -0.4) {    // cliff
+        blinn = pow(max(dot(halfway, n), 0.0), 5.0);
+        blinnBrightness = 0.3;
+        color = vec3(0.5,0.5,0.5);
+    }
+    else {
+        color = rainbowColor(fposition.z);
+    }
+    fragColor = vec4(color * lambert + (lightcolor*blinn)*blinnBrightness, 1.0);
 }
