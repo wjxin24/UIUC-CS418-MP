@@ -72,7 +72,7 @@ function setupGeomery(geom) {
  * Draw one frame
  */
 function draw() {
-    console.log("drawing")
+    cancelAnimationFrame(window.pending)
     gl.clearColor(...IlliniBlue) // f(...[1,2,3]) means f(1,2,3)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -87,11 +87,7 @@ function draw() {
     gl.uniform3fv(gl.getUniformLocation(program, 'halfway'), halfway)
     gl.uniform3fv(gl.getUniformLocation(program, 'lightcolor'), [1,1,1])
 
-    // gl.uniform1f(gl.getUniformLocation(program, 'zmax'), window.zmax)
-    // gl.uniform1f(gl.getUniformLocation(program, 'zmin'), window.zmin)
-    // console.log("zmax, zmin", zmax, zmin)
 
-    // gl.uniform4fv(gl.getUniformLocation(program, 'color'), IlliniOrange)
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
     gl.drawElements(geom.mode, geom.count, geom.type, 0)
@@ -102,13 +98,11 @@ function draw() {
 function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
     
-    // window.m = m4scale(0.5,0.5,0.5)
-    // window.m = m4mul(m4rotZ(seconds), m4rotX(-Math.PI/2))
-    const angle = 0.25* Math.PI * Math.sin(seconds/2);
-    window.m = m4rotZ(angle)
-    window.v = m4view([0,-3 ,1], [0,0,0], [0,1,0])
-    // window.v = IdentityMatrix
 
+    const angle = 0.25* Math.PI * Math.sin(seconds/2);
+    window.m = m4mul(m4rotZ(angle), m4scale(2,2,2))
+    window.v = m4view([0,-5 ,1.5], [0,0,0], [0,1,0])
+    
     draw()
     requestAnimationFrame(timeStep)
 }
@@ -244,9 +238,6 @@ async function setup(event) {
     // enable alpha
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-    // window.geom = setupGeomery(createGrid(100))
-    // let data = await fetch('monkey.json').then(r=>r.json())
-    // window.geom = setupGeomery(data)
     fillScreen()
     
 }
@@ -256,18 +247,32 @@ async function setup(event) {
  */
 async function setupScene(scene, options) {
     console.log("To do: render",scene,"with options",options)
-    gridsize = options["resolution"]
-    fractures = options["slices"]
-    let geom = createGrid(gridsize)
-    console.log("init geom:", geom.attributes)
-    geom = faultPlane(geom, gridsize, fractures)
-    console.log("fault plane geom:", geom.attributes)
-    geom = addNormals(geom)
-    console.log("added normal geom:", geom.attributes)
-    window.geom = setupGeomery(geom)
-    console.log(window.geom)
-    window.addEventListener('resize', fillScreen)
-    requestAnimationFrame(timeStep)
+    if (scene == "terrain") {
+        let gridsize = options["resolution"]
+        let fractures = options["slices"]
+        let geom = createGrid(gridsize)
+        console.log("init geom:", geom.attributes)
+        geom = faultPlane(geom, gridsize, fractures)
+        console.log("fault plane geom:", geom.attributes)
+        geom = addNormals(geom)
+        console.log("added normal geom:", geom.attributes)
+        window.geom = setupGeomery(geom)
+        window.addEventListener('resize', fillScreen)
+        requestAnimationFrame(timeStep)
+    }
+    else if (scene == "UV-sphere") {
+        let vs = await fetch('UVsphere-vertex.glsl').then(res => res.text())
+        let fs = await fetch('UVsphere-fragment.glsl').then(res => res.text())
+        window.UVsphereProgram = compileAndLinkGLSL(vs,fs)
+        let latitude = options["latitude"]
+        let longitude = options["longitude"]
+        let geom = createUVsphere(latitude, longitude)
+        geom = addNormals(geom)
+        window.geom = setupGeomery(geom)
+        window.addEventListener('resize', fillScreen)
+        requestAnimationFrame(timeStepSphere)
+    }
+    
 }
 
 window.addEventListener('load', setup)

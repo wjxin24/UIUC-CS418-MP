@@ -37,7 +37,7 @@ void main() {
     float lambert = max(dot(lightdir, n), 0.0);
     float blinn = pow(max(dot(halfway, n), 0.0), 150.0);
     float blinnBrightness = 5.0;
-    if (init_norm_z < 0.4 && init_norm_z > -0.4) {    // cliff
+    if (init_norm_z < 0.5 && init_norm_z > -0.5) {    // cliff
         blinn = pow(max(dot(halfway, n), 0.0), 5.0);
         blinnBrightness = 0.3;
         color = vec3(0.5,0.5,0.5);
