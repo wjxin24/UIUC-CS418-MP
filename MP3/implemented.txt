@@ -2,3 +2,5 @@ Shiny
 Height-based color ramp
 Rocky cliffs
 UV-sphere
+Torus
+Spheroidal Weathering

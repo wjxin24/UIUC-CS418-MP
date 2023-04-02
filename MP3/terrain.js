@@ -195,7 +195,38 @@ function faultPlane(geom, n, frac) {
         geom.attributes.position[i][2] = (geom.attributes.position[i][2]-zmin)/(zmax-zmin)*h-h/2
     }
 
-    // window.heightmax = 
+    return geom
+}
+
+/**
+ * Perform Spheroidal Weathering
+ * @param {*} geom      geometry of the grid
+ * @param {*} gridsize  grid size
+ * @param {*} n         number of iterations
+ */
+function weathering(geom, gridsize, n) {
+    let k = 0.1 // ratio of moving each vertex towards the average of its neighbors
+    for (let iter = 0; iter<n; iter++) {
+        for (let i=0; i<geom.attributes.position.length; i+=1) {
+            let x = Math.floor(i/gridsize)
+            let y = i%gridsize
+            let z_neigh = []  // z of neighbors for vertex(x,y)
+            for (let nx = x-1; nx <= x+1; nx++) {
+                for (let ny = y-1; ny <= y+1; ny++) {
+                    let pos = nx*gridsize+ny
+                    if (pos>=0 && pos<geom.attributes.position.length && pos!=i) {
+                        z_neigh.push(geom.attributes.position[pos][2])
+                    }
+                }
+            }
+            let sum = 0
+            for (let k=0; k<z_neigh.length; k++) {
+                sum += z_neigh[k]
+            }
+            let avg = sum/z_neigh.length  // average z of neighbors
+            geom.attributes.position[i][2] += k*(avg - geom.attributes.position[i][2])
+        }
+    }
     return geom
 }
 
@@ -250,12 +281,14 @@ async function setupScene(scene, options) {
     if (scene == "terrain") {
         let gridsize = options["resolution"]
         let fractures = options["slices"]
+        let iter = options["weathering"]
         let geom = createGrid(gridsize)
         console.log("init geom:", geom.attributes)
         geom = faultPlane(geom, gridsize, fractures)
         console.log("fault plane geom:", geom.attributes)
         geom = addNormals(geom)
         console.log("added normal geom:", geom.attributes)
+        geom = weathering(geom, gridsize, iter)
         window.geom = setupGeomery(geom)
         window.addEventListener('resize', fillScreen)
         requestAnimationFrame(timeStep)
