@@ -272,7 +272,20 @@ async function setupScene(scene, options) {
         window.addEventListener('resize', fillScreen)
         requestAnimationFrame(timeStepSphere)
     }
-    
+    else if (scene == "torus") {
+        let vs = await fetch('UVsphere-vertex.glsl').then(res => res.text())
+        let fs = await fetch('UVsphere-fragment.glsl').then(res => res.text())
+        window.torusProgram = compileAndLinkGLSL(vs,fs)
+        let r = options["res1"]
+        let p = options["res2"]
+        let or = options["r1"]
+        let ir = options["r2"]
+        let geom = createTorus(r, p, ir, or)
+        geom = addNormals(geom)
+        window.geom = setupGeomery(geom)
+        window.addEventListener('resize', fillScreen)
+        requestAnimationFrame(timeStepTorus)
+    }
 }
 
 window.addEventListener('load', setup)

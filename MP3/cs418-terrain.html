@@ -7,6 +7,7 @@
 
     <script src="math.js"></script>
     <script src="UVsphere.js"></script>
+    <script src="torus.js"></script>
     <script src="terrain.js"></script>
 
 <script>// configures controls
@@ -22,12 +23,21 @@ var controlOptions =
     {"resolution":{"type":"number","default":100,"label":"Grid size"}
       ,"slices":{"type":"number","default":100,"label":"Fractures"}
       }
-    },
-    "UV-sphere":
+    }
+    ,"UV-sphere":
     {"label":"Optional: UV-sphere"
     ,"options":
       {"latitude":{"type":"number","default":20,"label":"latitude rings"}
       ,"longitude":{"type":"number","default":20,"label":"longitude slices"}
+      }
+    }
+    ,"torus":
+    {"label":"Optional: Torus objects"
+    ,"options":
+      {"r1":{"type":"number","default":1,"label":"Major radius"}
+      ,"r2":{"type":"number","default":0.25,"label":"Minor radius"}
+      ,"res1":{"type":"number","default":48,"label":"Number of rings"}
+      ,"res2":{"type":"number","default":24,"label":"Points per ring"}
       }
     }
   }
