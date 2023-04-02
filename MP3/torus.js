@@ -31,7 +31,6 @@ function createTorus(r, p, ir, or) {
         attributes: attributes,
         triangles: triangles
     }
-    console.log(torus)
     return torus
 }
 

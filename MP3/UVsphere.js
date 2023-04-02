@@ -27,7 +27,6 @@ function createUVsphere(latitude, longitude) {
         attributes: attributes,
         triangles: triangles
     }
-    console.log(sphere)
     return sphere
 }
 

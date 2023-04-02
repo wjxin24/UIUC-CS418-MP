@@ -283,11 +283,8 @@ async function setupScene(scene, options) {
         let fractures = options["slices"]
         let iter = options["weathering"]
         let geom = createGrid(gridsize)
-        console.log("init geom:", geom.attributes)
         geom = faultPlane(geom, gridsize, fractures)
-        console.log("fault plane geom:", geom.attributes)
         geom = addNormals(geom)
-        console.log("added normal geom:", geom.attributes)
         geom = weathering(geom, gridsize, iter)
         window.geom = setupGeomery(geom)
         window.addEventListener('resize', fillScreen)
@@ -318,6 +315,17 @@ async function setupScene(scene, options) {
         window.geom = setupGeomery(geom)
         window.addEventListener('resize', fillScreen)
         requestAnimationFrame(timeStepTorus)
+    }
+    else if (scene == "icosphere") {
+        let vs = await fetch('icosphere-vertex.glsl').then(res => res.text())
+        let fs = await fetch('icosphere-fragment.glsl').then(res => res.text())
+        window.icosphereProgram = compileAndLinkGLSL(vs,fs)
+        let n = options["n"]
+        let geom = createIcosphere(n)
+        geom = addNormals(geom)
+        window.geom = setupGeomery(geom)
+        window.addEventListener('resize', fillScreen)
+        requestAnimationFrame(timeStepIcosphere)
     }
 }
 

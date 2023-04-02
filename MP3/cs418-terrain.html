@@ -8,6 +8,7 @@
     <script src="math.js"></script>
     <script src="UVsphere.js"></script>
     <script src="torus.js"></script>
+    <script src="icosphere.js"></script>
     <script src="terrain.js"></script>
 
 <script>// configures controls
@@ -39,6 +40,12 @@ var controlOptions =
       ,"r2":{"type":"number","default":0.25,"label":"Minor radius"}
       ,"res1":{"type":"number","default":48,"label":"Number of rings"}
       ,"res2":{"type":"number","default":24,"label":"Points per ring"}
+      }
+    }
+    ,"icosphere":
+    {"label":"Optional: Icosphere"
+    ,"options":
+      {"n":{"type":"number","default":0,"label":"Subdivision level"}
       }
     }
   }

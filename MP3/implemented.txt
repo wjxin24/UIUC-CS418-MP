@@ -4,3 +4,4 @@ Rocky cliffs
 UV-sphere
 Torus
 Spheroidal Weathering
+Icosphere
