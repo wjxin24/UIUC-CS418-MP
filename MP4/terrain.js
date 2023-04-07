@@ -99,10 +99,30 @@ function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
     
 
-    const angle = 0.25* Math.PI * Math.sin(seconds/2);
-    window.m = m4mul(m4rotZ(angle), m4scale(2,2,2))
-    window.v = m4view([0,-5 ,1.5], [0,0,0], [0,1,0])
+    // const angle = 0.25* Math.PI * Math.sin(seconds/2);
     
+    
+    
+    // console.log("keys being pressed:", keysBeingPressed)
+
+    if (keysBeingPressed['W']) {    // move the camera forward
+        console.log("pressing W")
+        window.v = m4mul(m4trans(0,0,seconds/1000), window.v)
+    }
+    if (keysBeingPressed['S']) {    // move the camera backward
+        console.log("pressing S")
+        window.v = m4mul(m4trans(0,0,-seconds/1000), window.v)
+    }
+    if (keysBeingPressed['A']) {    // move the camera to its left (move, not turn)
+        console.log("pressing A")
+        window.v = m4mul(m4trans(seconds/1000,0,0), window.v)
+    }
+    if (keysBeingPressed['D']) {    // move the camera to its right (move, not turn)
+        console.log("pressing D")
+        window.v = m4mul(m4trans(-seconds/1000,0,0), window.v)
+    }
+
+
     draw()
     requestAnimationFrame(timeStep)
 }
@@ -247,26 +267,15 @@ async function setup(event) {
     geom = addNormals(geom)
     window.geom = setupGeomery(geom)
     window.addEventListener('resize', fillScreen)
+    window.keysBeingPressed = {}
+    window.addEventListener('keydown', event => keysBeingPressed[event.key] = true)
+    window.addEventListener('keyup', event => keysBeingPressed[event.key] = false)
+    // initial setup for view matrix
+    window.m = m4scale(2,2,2)
+    window.v = m4view([0,-5 ,2], [0,0,0], [0,1,0])
     requestAnimationFrame(timeStep)
 }
 
-/**
- * Generate geometry, render the scene
- */
-async function setupScene(scene, options) {
-    console.log("To do: render",scene,"with options",options)
-    let gridsize = options["resolution"]
-    let fractures = options["slices"]
-    let iter = options["weathering"]
-    let geom = createGrid(gridsize)
-    geom = faultPlane(geom, gridsize, fractures)
-    geom = addNormals(geom)
-    geom = weathering(geom, gridsize, iter)
-    window.geom = setupGeomery(geom)
-    window.addEventListener('resize', fillScreen)
-    requestAnimationFrame(timeStep)
-
-}
 
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
