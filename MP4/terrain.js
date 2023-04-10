@@ -80,6 +80,9 @@ function draw() {
 
     gl.bindVertexArray(geom.vao)
 
+    let bindPoint = gl.getUniformLocation(program, 'aTextureIPlanToUse')
+    gl.uniform1i(bindPoint, 0) // where `slot` is same it was in step 2 above
+
     let lightdir = normalize([1,1,1])
     let halfway = normalize(add(lightdir, [0,0,1]))
 
@@ -100,18 +103,14 @@ function timeStep(milliseconds) {
     
 
     // const angle = 0.25* Math.PI * Math.sin(seconds/2);
-    
-    
-    
-    // console.log("keys being pressed:", keysBeingPressed)
 
     if (keysBeingPressed['W']) {    // move the camera forward
         console.log("pressing W")
-        window.v = m4mul(m4trans(0,0,seconds/1000), window.v)
+        window.v = m4mul(window.v, m4trans(0,-seconds/1000,0))
     }
     if (keysBeingPressed['S']) {    // move the camera backward
         console.log("pressing S")
-        window.v = m4mul(m4trans(0,0,-seconds/1000), window.v)
+        window.v = m4mul(window.v, m4trans(0,seconds/1000,0))
     }
     if (keysBeingPressed['A']) {    // move the camera to its left (move, not turn)
         console.log("pressing A")
@@ -155,9 +154,11 @@ function fillScreen() {
 function createGrid(n) {
     position = []
     triangles = []
+    aTexCoord = []
     for (let x = 0; x < n; x++) {
         for (let y = 0; y < n; y++) {
             position.push([-1+y*2/(n-1), 1-x*2/(n-1), 0])
+            aTexCoord.push([y/(n-1),x/(n-1)])
             if (x != n-1 && y != n-1) {
                 let i = x*n + y
                 triangles.push([i, i+n, i+1])
@@ -166,7 +167,8 @@ function createGrid(n) {
         }
     }
     attributes = {
-        position: position
+        position: position,
+        aTexCoord: aTexCoord
     }
     grid = {
         attributes: attributes,
@@ -266,6 +268,7 @@ async function setup(event) {
     geom = faultPlane(geom, gridsize, fractures)
     geom = addNormals(geom)
     window.geom = setupGeomery(geom)
+    loadTexture("farm.jpg")
     window.addEventListener('resize', fillScreen)
     window.keysBeingPressed = {}
     window.addEventListener('keydown', event => keysBeingPressed[event.key] = true)
@@ -276,6 +279,31 @@ async function setup(event) {
     requestAnimationFrame(timeStep)
 }
 
+function loadTexture(urlOfImageAsString) {
+    let img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = urlOfImageAsString;
+    img.addEventListener('load', (event) => {
+        let slot = 0; // or a larger integer if this isn't the only texture
+        let texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + slot);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    
+        gl.texImage2D(
+            gl.TEXTURE_2D, // destination slot
+            0, // the mipmap level this data provides; almost always 0
+            gl.RGBA, // how to store it in graphics memory
+            gl.RGBA, // how it is stored in the image object
+            gl.UNSIGNED_BYTE, // size of a single pixel-color in HTML
+            img, // source data
+        );
+        gl.generateMipmap(gl.TEXTURE_2D) // lets you use a mipmapping min filter
+    })
+}
 
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
