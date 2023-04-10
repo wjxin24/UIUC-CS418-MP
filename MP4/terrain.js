@@ -102,7 +102,7 @@ function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
     
 
-    // const angle = 0.25* Math.PI * Math.sin(seconds/2);
+    const angle = Math.PI * seconds/10000;
 
     if (keysBeingPressed['W']) {    // move the camera forward
         console.log("pressing W")
@@ -119,6 +119,23 @@ function timeStep(milliseconds) {
     if (keysBeingPressed['D']) {    // move the camera to its right (move, not turn)
         console.log("pressing D")
         window.v = m4mul(m4trans(-seconds/1000,0,0), window.v)
+    }
+    // camera rotation
+    if (keysBeingPressed['ArrowUp']) {
+        console.log("pressing ArrowUp")
+        window.v = m4mul(m4rotX(-angle), window.v);
+    }
+    if (keysBeingPressed['ArrowDown']) { 
+        console.log("pressing ArrowDown")
+        window.v = m4mul(m4rotX(angle), window.v)
+    }
+    if (keysBeingPressed['ArrowLeft']) { 
+        console.log("pressing ArrowLeft")
+        window.v = m4mul(m4rotY(-angle), window.v)
+    }
+    if (keysBeingPressed['ArrowRight']) {
+        console.log("pressing ArrowRight")
+        window.v = m4mul(m4rotY(angle), window.v)
     }
 
 
