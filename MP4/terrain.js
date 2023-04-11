@@ -105,49 +105,60 @@ function timeStep(milliseconds) {
     let speed = 0.01;
     
 
-    const angle = Math.PI * seconds/10000;
+    const angle = Math.PI * speed;
 
     if (keysBeingPressed['W']) {    // move the camera forward
         console.log("pressing W")
-        window.eye = [eye[0], eye[1]+speed, eye[2]]
-        window.v = m4view2(eye, window.forward, [0,1,0])
+
+        window.eye = add(eye, mul(forward,speed))
+        window.v = m4view2(eye, window.forward, [0,0,1])
         console.log(v)
     }
     if (keysBeingPressed['S']) {    // move the camera backward
         console.log("pressing S")
-        window.eye = [eye[0], eye[1]-speed, eye[2]]
-        window.v = m4view2(eye, window.forward, [0,1,0])
+        window.eye = sub(eye, mul(forward,speed))
+        window.v = m4view2(eye, window.forward, [0,0,1])
         console.log(v)
     }
     if (keysBeingPressed['A']) {    // move the camera to its left (move, not turn)
         console.log("pressing A")
-        window.eye = [eye[0]-speed, eye[1], eye[2]]
-        window.v = m4view2(eye, window.forward, [0,1,0])
+        right = normalize(cross(window.forward, [0,0,1]))
+        window.eye = sub(eye, mul(right, speed))
+        window.v = m4view2(eye, window.forward, [0,0,1])
         console.log(v)
     }
     if (keysBeingPressed['D']) {    // move the camera to its right (move, not turn)
         console.log("pressing D")
-        window.eye = [eye[0]+speed, eye[1], eye[2]]
-        window.v = m4view2(eye, window.forward, [0,1,0])
+        right = normalize(cross(window.forward, [0,0,1]))
+        window.eye = add(eye, mul(right, speed))
+        window.v = m4view2(eye, window.forward, [0,0,1])
         console.log(v)
     }
 
     // camera rotation
     if (keysBeingPressed['ArrowUp']) {
         console.log("pressing ArrowUp")
-        window.v = m4mul(m4rotX(-angle), window.v);
+        window.forward = m4mul(m4rotX(speed/2),[...forward,1]).slice(0, 3)
+        window.v = m4view2(window.eye, forward, [0,0,1])
+        console.log(v)
     }
     if (keysBeingPressed['ArrowDown']) { 
         console.log("pressing ArrowDown")
-        window.v = m4mul(m4rotX(angle), window.v)
+        window.forward = m4mul(m4rotX(-speed/2),[...forward,1]).slice(0, 3)
+        window.v = m4view2(window.eye, forward, [0,0,1])
+        console.log(v)
     }
     if (keysBeingPressed['ArrowLeft']) { 
         console.log("pressing ArrowLeft")
-        window.v = m4mul(m4rotY(-angle), window.v)
+        window.forward = m4mul(m4rotZ(speed/2),[...forward,1]).slice(0, 3)
+        window.v = m4view2(window.eye, forward, [0,0,1])
+        console.log(v)
     }
     if (keysBeingPressed['ArrowRight']) {
         console.log("pressing ArrowRight")
-        window.v = m4mul(m4rotY(angle), window.v)
+        window.forward = m4mul(m4rotZ(-speed/2),[...forward,1]).slice(0, 3)
+        window.v = m4view2(window.eye, forward, [0,0,1])
+        console.log(v)
     }
 
     // flight or ground mode
@@ -156,11 +167,11 @@ function timeStep(milliseconds) {
         keysPressed['G'] = 0
         if (window.FLIGHT) {
             FLIGHT = 0
-            window.v = m4view2([0,0,window.groundCamHeight], [0,1,0], [0,1,0])
+            window.v = m4view2([0,0,window.groundCamHeight], [0,0,1], [0,0,1])
         }
         else {
             FLIGHT = 1;
-            window.v = m4view([0,-5 ,2], [0,0,0], [0,1,0])
+            window.v = m4view([0,-5 ,2], [0,0,0], [0,0,1])
         }
     }
     draw()
@@ -323,8 +334,10 @@ async function setup(event) {
     // initial setup for view matrix
     window.m = m4scale(2,2,2)
     window.eye = [0,-5,1]
-    window.forward = sub([0,0,0], eye)
-    window.v = m4view(eye, [0,0,0], [0,1,0])
+    // window.forward = sub([0,0,0], eye)
+    window.forward =[0,1,0]
+    window.center = [0,0,0]
+    window.v = m4view2(eye, forward, [0,0,1])
 
     console.log(v)
     window.groundCamHeight = 2/gridsize * 200
