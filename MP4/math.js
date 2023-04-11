@@ -51,6 +51,7 @@ const m4fixAxes = (f, up) => { // f to -z, up to near +y
 }
 const m4scale = (sx,sy,sz) => new Float32Array([sx,0,0,0, 0,sy,0,0, 0,0,sz,0, 0,0,0,1])
 const m4view = (eye, center, up) => m4mul(m4fixAxes(sub(center,eye), up), m4trans(-eye[0],-eye[1],-eye[2]))
+const m4view2 = (eye, forward, up) => m4mul(m4fixAxes(forward, up), m4trans(-eye[0],-eye[1],-eye[2]))
 const m4perspNegZ = (near, far, fovy, width, height) => {
   let sy = 1/Math.tan(fovy/2);
   let sx = sy*height/width;

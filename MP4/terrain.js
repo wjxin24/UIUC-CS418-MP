@@ -2,6 +2,8 @@ const IlliniBlue = new Float32Array([0.075, 0.16, 0.292, 1])
 const IlliniOrange = new Float32Array([1, 0.373, 0.02, 1])
 const IdentityMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1])
 
+
+
 function compileAndLinkGLSL(vs_source, fs_source) {
     let vs = gl.createShader(gl.VERTEX_SHADER)
     gl.shaderSource(vs, vs_source)
@@ -100,26 +102,36 @@ function draw() {
 /** Compute any time-varying or animated aspects of the scene */
 function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
+    let speed = 0.01;
     
 
     const angle = Math.PI * seconds/10000;
 
     if (keysBeingPressed['W']) {    // move the camera forward
         console.log("pressing W")
-        window.v = m4mul(window.v, m4trans(0,-seconds/1000,0))
+        window.eye = [eye[0], eye[1]+speed, eye[2]]
+        window.v = m4view2(eye, window.forward, [0,1,0])
+        console.log(v)
     }
     if (keysBeingPressed['S']) {    // move the camera backward
         console.log("pressing S")
-        window.v = m4mul(window.v, m4trans(0,seconds/1000,0))
+        window.eye = [eye[0], eye[1]-speed, eye[2]]
+        window.v = m4view2(eye, window.forward, [0,1,0])
+        console.log(v)
     }
     if (keysBeingPressed['A']) {    // move the camera to its left (move, not turn)
         console.log("pressing A")
-        window.v = m4mul(m4trans(seconds/1000,0,0), window.v)
+        window.eye = [eye[0]-speed, eye[1], eye[2]]
+        window.v = m4view2(eye, window.forward, [0,1,0])
+        console.log(v)
     }
     if (keysBeingPressed['D']) {    // move the camera to its right (move, not turn)
         console.log("pressing D")
-        window.v = m4mul(m4trans(-seconds/1000,0,0), window.v)
+        window.eye = [eye[0]+speed, eye[1], eye[2]]
+        window.v = m4view2(eye, window.forward, [0,1,0])
+        console.log(v)
     }
+
     // camera rotation
     if (keysBeingPressed['ArrowUp']) {
         console.log("pressing ArrowUp")
@@ -138,7 +150,19 @@ function timeStep(milliseconds) {
         window.v = m4mul(m4rotY(angle), window.v)
     }
 
-
+    // flight or ground mode
+    if (keysPressed['G']) { 
+        console.log("press G")
+        keysPressed['G'] = 0
+        if (window.FLIGHT) {
+            FLIGHT = 0
+            window.v = m4view2([0,0,window.groundCamHeight], [0,1,0], [0,1,0])
+        }
+        else {
+            FLIGHT = 1;
+            window.v = m4view([0,-5 ,2], [0,0,0], [0,1,0])
+        }
+    }
     draw()
     requestAnimationFrame(timeStep)
 }
@@ -290,9 +314,21 @@ async function setup(event) {
     window.keysBeingPressed = {}
     window.addEventListener('keydown', event => keysBeingPressed[event.key] = true)
     window.addEventListener('keyup', event => keysBeingPressed[event.key] = false)
+
+    window.FLIGHT = 1 // default flight mode
+    
+    window.keysPressed = {}
+    window.addEventListener('keydown', event => keysPressed[event.key] = true)
+
     // initial setup for view matrix
     window.m = m4scale(2,2,2)
-    window.v = m4view([0,-5 ,2], [0,0,0], [0,1,0])
+    window.eye = [0,-5,1]
+    window.forward = sub([0,0,0], eye)
+    window.v = m4view(eye, [0,0,0], [0,1,0])
+
+    console.log(v)
+    window.groundCamHeight = 2/gridsize * 200
+
     requestAnimationFrame(timeStep)
 }
 
