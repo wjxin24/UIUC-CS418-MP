@@ -38,6 +38,35 @@ const m4rotZ = (ang) => { // around z axis
   let c = Math.cos(ang), s = Math.sin(ang);
   return new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]);
 }
+const m4rotAxis = (ang, x, y, z) => {
+  // Normalize the direction vector
+  const length = Math.sqrt(x*x + y*y + z*z);
+  const invLength = length !== 0 ? 1 / length : 0;
+  const nx = x * invLength;
+  const ny = y * invLength;
+  const nz = z * invLength;
+
+  // Calculate sine and cosine of rotation angle
+  const c = Math.cos(ang);
+  const s = Math.sin(ang);
+
+  // Calculate the remaining components of the rotation matrix
+  const t = 1 - c;
+  const xs = nx * s;
+  const ys = ny * s;
+  const zs = nz * s;
+  const tx = nx * t;
+  const ty = ny * t;
+  const tz = nz * t;
+
+  // Construct the rotation matrix
+  return new Float32Array([
+    nx * tx + c,     ny * tx + zs,   nz * tx - ys,   0,
+    nx * ty - zs,    ny * ty + c,    nz * ty + xs,   0,
+    nx * tz + ys,    ny * tz - xs,   nz * tz + c,    0,
+    0,               0,              0,               1
+  ]);
+};
 const m4fixAxes = (f, up) => { // f to -z, up to near +y
   f = normalize(f)
   let r = normalize(cross(f,up))
