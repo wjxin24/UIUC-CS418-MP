@@ -103,49 +103,103 @@ function draw() {
 function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
     let speed = 0.005;
+    let groundspeed = 0.0005;
     
 
     const angle = Math.PI * speed;
 
     if (keysBeingPressed['W'] || keysBeingPressed['w']) {    // move the camera forward
         console.log("pressing W")
-
-        window.eye = add(eye, mul(window.forward,speed))
-        console.log(eye)
+        if (FLIGHT==1) {
+            window.eye = add(eye, mul(window.forward,speed))
+            console.log(eye)
+        }
         if (FLIGHT==0) {
-            eye[2] = getZ(eye[0],eye[1])
+            window.eye = add(eye, mul(window.forward,groundspeed))
+            if (eye[0]<-1 || eye[0]>1 || eye[1]<-1 || eye[1]>1) {
+                console.log("back to flight mode")
+                FLIGHT = 1
+                window.eye = [0,-5 ,1]
+                window.forward = normalize(sub(window.center,eye))
+            }
+            else {
+                eye[2] = getZ(eye[0],eye[1])
+                console.log(eye)
+            }
         }
         window.v = m4view2(eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['S'] || keysBeingPressed['s']) {    // move the camera backward
         console.log("pressing S")
-        window.eye = sub(eye, mul(window.forward,speed))
+        if (FLIGHT==1) {
+            window.eye = sub(eye, mul(window.forward,speed))
+            console.log(eye)
+        }
+        
         if (FLIGHT==0) {
-            eye[2] = getZ(eye[0],eye[1])
+            window.eye = sub(eye, mul(window.forward,groundspeed))
+            if (eye[0]<-1 || eye[0]>1 || eye[1]<-1 || eye[1]>1) {
+                console.log("back to flight mode")
+                FLIGHT = 1
+                window.eye = [0,-5 ,1]
+                window.forward = normalize(sub(window.center,eye))
+            }
+            else {
+                eye[2] = getZ(eye[0],eye[1])
+                console.log(eye)
+            }
         }
         window.v = m4view2(eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['A'] || keysBeingPressed['a']) {    // move the camera to its left (move, not turn)
         console.log("pressing A")
         right = normalize(cross(window.forward, up))
-        window.eye = sub(eye, mul(right, speed))
+        if (FLIGHT==1) {
+            window.eye = sub(eye, mul(right,speed))
+            console.log(eye)
+        }
+        
         if (FLIGHT==0) {
-            eye[2] = getZ(eye[0],eye[1])
+            window.eye = sub(eye, mul(right, groundspeed))
+            if (eye[0]<-1 || eye[0]>1 || eye[1]<-1 || eye[1]>1) {
+                console.log("back to flight mode")
+                FLIGHT = 1
+                window.eye = [0,-5 ,1]
+                window.forward = normalize(sub(window.center,eye))
+            }
+            else {
+                eye[2] = getZ(eye[0],eye[1])
+                console.log(eye)
+            }
         }
         window.v = m4view2(eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['D'] || keysBeingPressed['d']) {    // move the camera to its right (move, not turn)
         console.log("pressing D")
         right = normalize(cross(window.forward, up))
-        window.eye = add(eye, mul(right, speed))
+        if (FLIGHT==1) {
+            window.eye = add(eye, mul(right,speed))
+            console.log(eye)
+        }
+        
         if (FLIGHT==0) {
-            eye[2] = getZ(eye[0],eye[1])
+            window.eye = add(eye, mul(right, groundspeed))
+            if (eye[0]<-1 || eye[0]>1 || eye[1]<-1 || eye[1]>1) {
+                console.log("back to flight mode")
+                FLIGHT = 1
+                window.eye = [0,-5 ,1]
+                window.forward = normalize(sub(window.center,eye))
+            }
+            else {
+                eye[2] = getZ(eye[0],eye[1])
+                console.log(eye)
+            }
         }
         window.v = m4view2(eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
 
     // camera rotation
@@ -155,62 +209,48 @@ function timeStep(milliseconds) {
         // console.log("right",right)
         window.forward = m4mul(m4rotAxis(speed,...right),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['ArrowDown']) { 
         console.log("pressing ArrowDown")
         right = normalize(cross(window.forward, window.up))
         window.forward = m4mul(m4rotAxis(-speed,...right),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['ArrowLeft']) { 
         console.log("pressing ArrowLeft")
-        // right = normalize(cross(window.forward, window.up))
-        // console.log("right", right)
-        // window.forward = normalize(m4mul([...forward,1],m4rotZ(speed/2)).slice(0, 3))
-        // window.v = m4view2(window.eye, forward, up)
-        // window.v = m4mul(m4rotY(speed),v)
-        // console.log("correct v",v)
-        // console.log("u:",normalize(cross(normalize(cross(forward,up)),forward)))
-        // console.log("prev forw",forward)
-        // u = normalize(cross(normalize(cross(forward,up)),forward))
-        // console.log("m4rotAxis(speed,...[u])",m4rotAxis(speed,...u))
-        // window.forward = m4mul(m4rotAxis(speed,...u),[...forward,0]).slice(0, 3)
         window.forward = m4mul(m4rotZ(speed),[...forward,0]).slice(0, 3)
-        // console.log("forw",forward)
         window.v = m4view2(window.eye, forward, up)
-        console.log(v)
+        // console.log(v)
     }
     if (keysBeingPressed['ArrowRight']) {
         console.log("pressing ArrowRight")
-        // window.forward = m4mul(m4rotZ(-speed/2),[...forward,1]).slice(0, 3)
-        // window.v = m4view2(window.eye, forward, up)
         window.forward = m4mul(m4rotZ(-speed),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        // window.v = m4mul(m4rotY(-speed),v)
-        console.log(v)
     }
 
     // flight or ground mode
     if (keysPressed['G'] || keysPressed['g']) { 
         console.log("press G")
         keysPressed['G'] = 0
+        keysPressed['g'] = 0
         if (window.FLIGHT) {
             FLIGHT = 0
             x = Math.random()*2-1
             y = Math.random()*2-1
-            z = getZ(x,y)+window.groundCamHeight
+            z = getZ(x,y)
             window.eye = [x,y,z]
             console.log(eye)
-            window.forward =[0,1,0]
-            window.v = m4view2(eye, [0,1,0], up)
+            window.forward = normalize([0,2,-1])
+            window.v = m4view2(eye, forward, up)
         }
         else {
             FLIGHT = 1;
-            window.eye = [0,-5 ,2]
-            window.forward =[0,1,0]
-            window.v = m4view(eye, [0,1,0], up)
+            window.m = IdentityMatrix
+            window.eye = [0,-5 ,1]
+            window.forward = normalize(sub(window.center,eye))
+            window.v = m4view(eye, forward, up)
         }
     }
     
@@ -220,14 +260,21 @@ function timeStep(milliseconds) {
 
 function getZ(x, y) {
     n = window.gridsize
-    x = (x+1)*(n-1)/2
-    y = (y+1)*(n-1)/2
-    console.log("x=",x," y=",y)
-    lb = (x-Math.floor(x))*(y-Math.floor(y))*window.geometry.attributes.position[Math.floor(x)*n+Math.floor(y)][2]
-    rb = (x-Math.floor(x))*(Math.floor(y)+1-y)*window.geometry.attributes.position[Math.floor(x)*n+Math.floor(y)+1][2]
-    ru = (Math.floor(x)+1-x)*(Math.floor(y)+1-y)*window.geometry.attributes.position[(Math.floor(x)+1)*n+Math.floor(y)+1][2]
-    lu = (Math.floor(x)+1-x)*(y-Math.floor(y))*window.geometry.attributes.position[(Math.floor(x)+1)*n+Math.floor(y)][2]
-    return lb+lu+ru+rb
+    gx = (1-y)*(n-1)/2
+    gy = (x+1)*(n-1)/2
+    console.log("gx=",gx," gy=",gy)
+    // return window.geometry.attributes.position[(Math.floor(gx))*n+Math.floor(gy)][2] + window.groundCamHeight
+    offset_x = gx-Math.floor(gx)
+    offset_y = gy-Math.floor(gy)
+    avg_z = (1-offset_x)*(1-offset_y)*window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)][2] + 
+            offset_x*(1-offset_y)*window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)][2] + 
+            (1-offset_x)*offset_y*window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)+1][2] + 
+            offset_x*offset_y*window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)+1][2]
+    console.log(offset_x*offset_y,'*',window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)][2],
+            '+',(1-offset_x)*offset_y,'*',window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)][2],
+            '+',offset_x*(1-offset_y),'*',window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)+1][2],
+            '+',(1-offset_x)*(1-offset_y),'*',window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)+1][2])
+    return avg_z + window.groundCamHeight
 }
 /**
  * Resizes the canvas to completely fill the screen
@@ -244,8 +291,7 @@ function fillScreen() {
     // to do: update aspect ratio of projection matrix here
     if (window.gl) {
         gl.viewport(0,0, canvas.width, canvas.height)
-        window.p = IdentityMatrix
-        window.p = m4perspNegZ(0.1, 10, 1, canvas.width, canvas.height)
+        window.p = m4perspNegZ(0.001, 10, 1, canvas.width, canvas.height)
     }
 }
 
@@ -384,7 +430,7 @@ async function setup(event) {
 
     // initial setup for view matrix
     window.m = m4scale(2,2,2)
-    window.eye = [0,-5,2]
+    window.eye = [0,-5,1]
     window.center = [0,0,0]
     window.forward = normalize(sub(center, eye))
     window.up = [0,0,1]
