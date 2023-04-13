@@ -3,6 +3,7 @@ const IlliniOrange = new Float32Array([1, 0.373, 0.02, 1])
 const IdentityMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1])
 
 window.OBJFLAG = 0  // object flag: 0: no object, 1: v only
+window.FOGFLAG = 0
 
 function compileAndLinkGLSL(vs_source, fs_source) {
     let vs = gl.createShader(gl.VERTEX_SHADER)
@@ -88,9 +89,16 @@ function draw() {
     gl.uniform1i(bindPoint, 0) // where `slot` is same it was in step 2 above
 
     let lightdir = normalize([1,1,1])
-
     gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), lightdir)
 
+    let fogBind = gl.getUniformLocation(program, 'fogFlag')
+    if (FOGFLAG) {
+        gl.uniform1i(fogBind, 1)
+        let fogColor = [0.7,0.7,0.7]
+        gl.uniform3fv(gl.getUniformLocation(program, 'fogColor'), fogColor)
+    } else {
+        gl.uniform1i(fogBind, 0)
+    }
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
     gl.drawElements(geom.mode, geom.count, geom.type, 0)
@@ -101,6 +109,14 @@ function draw() {
         objm = m4trans(0,0,getZ(0,0)-window.groundCamHeight-window.obj_min_z)
         gl.uniformMatrix4fv(gl.getUniformLocation(window.objprogram, 'mv'), false, m4mul(v,objm))
         gl.uniformMatrix4fv(gl.getUniformLocation(window.objprogram, 'p'), false, p)
+        let fogBind = gl.getUniformLocation(objprogram, 'fogFlag')
+        if (FOGFLAG) {
+            gl.uniform1i(fogBind, 1)
+            let fogColor = [0.7,0.7,0.7]
+            gl.uniform3fv(gl.getUniformLocation(objprogram, 'fogColor'), fogColor)
+        } else {
+            gl.uniform1i(fogBind, 0)
+        }
         gl.drawElements(objgeom.mode, objgeom.count, objgeom.type, 0)
     }
 }
@@ -259,6 +275,20 @@ function timeStep(milliseconds) {
         }
     }
     
+
+    // fog mode
+    if (keysPressed['F'] || keysPressed['f']) { 
+        console.log("press F")
+        keysPressed['F'] = 0
+        keysPressed['f'] = 0
+        if (FOGFLAG) {
+            FOGFLAG = 0
+        }
+        else {
+            FOGFLAG = 1;
+        }
+    }
+
     draw()
     requestAnimationFrame(timeStep)
 }

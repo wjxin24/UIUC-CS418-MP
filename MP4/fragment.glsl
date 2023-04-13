@@ -6,6 +6,9 @@ in vec2 vTexCoord;
 
 uniform vec3 lightdir;
 
+uniform int fogFlag;
+uniform vec3 fogColor;
+
 uniform sampler2D aTextureIPlanToUse;
 
 out vec4 fcolor;
@@ -14,7 +17,13 @@ out vec4 fcolor;
 
 void main() {
     vec4 texColor = texture(aTextureIPlanToUse, vTexCoord);
+    
     vec3 n = normalize(fnormal);
     float lambert = max(dot(lightdir, n), 0.0);
-    fcolor = vec4(texColor.rgb * lambert, texColor.a);
+    if (fogFlag==1) {
+        fcolor = vec4(gl_FragCoord.w * texColor.rgb * lambert + (1.0-gl_FragCoord.w) * fogColor, texColor.a);
+    }
+    else {
+        fcolor = vec4(texColor.rgb * lambert, texColor.a);
+    }
 }
