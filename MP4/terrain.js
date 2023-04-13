@@ -132,7 +132,6 @@ function timeStep(milliseconds) {
         console.log("pressing W")
         if (FLIGHT==1) {
             window.eye = add(eye, mul(window.forward,speed))
-            console.log(eye)
         }
         if (FLIGHT==0) {
             window.eye = add(eye, mul(window.forward,groundspeed))
@@ -144,17 +143,14 @@ function timeStep(milliseconds) {
             }
             else {
                 eye[2] = getZ(eye[0],eye[1])
-                console.log(eye)
             }
         }
         window.v = m4view2(eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['S'] || keysBeingPressed['s']) {    // move the camera backward
         console.log("pressing S")
         if (FLIGHT==1) {
             window.eye = sub(eye, mul(window.forward,speed))
-            console.log(eye)
         }
         
         if (FLIGHT==0) {
@@ -167,18 +163,15 @@ function timeStep(milliseconds) {
             }
             else {
                 eye[2] = getZ(eye[0],eye[1])
-                console.log(eye)
             }
         }
         window.v = m4view2(eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['A'] || keysBeingPressed['a']) {    // move the camera to its left (move, not turn)
         console.log("pressing A")
         right = normalize(cross(window.forward, up))
         if (FLIGHT==1) {
             window.eye = sub(eye, mul(right,speed))
-            console.log(eye)
         }
         
         if (FLIGHT==0) {
@@ -191,18 +184,15 @@ function timeStep(milliseconds) {
             }
             else {
                 eye[2] = getZ(eye[0],eye[1])
-                console.log(eye)
             }
         }
         window.v = m4view2(eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['D'] || keysBeingPressed['d']) {    // move the camera to its right (move, not turn)
         console.log("pressing D")
         right = normalize(cross(window.forward, up))
         if (FLIGHT==1) {
             window.eye = add(eye, mul(right,speed))
-            console.log(eye)
         }
         
         if (FLIGHT==0) {
@@ -215,34 +205,28 @@ function timeStep(milliseconds) {
             }
             else {
                 eye[2] = getZ(eye[0],eye[1])
-                console.log(eye)
             }
         }
         window.v = m4view2(eye, forward, up)
-        // console.log(v)
     }
 
     // camera rotation
     if (keysBeingPressed['ArrowUp']) {
         console.log("pressing ArrowUp")
         right = normalize(cross(window.forward, window.up))
-        // console.log("right",right)
         window.forward = m4mul(m4rotAxis(speed,...right),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['ArrowDown']) { 
         console.log("pressing ArrowDown")
         right = normalize(cross(window.forward, window.up))
         window.forward = m4mul(m4rotAxis(-speed,...right),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['ArrowLeft']) { 
         console.log("pressing ArrowLeft")
         window.forward = m4mul(m4rotZ(speed),[...forward,0]).slice(0, 3)
         window.v = m4view2(window.eye, forward, up)
-        // console.log(v)
     }
     if (keysBeingPressed['ArrowRight']) {
         console.log("pressing ArrowRight")
@@ -262,7 +246,6 @@ function timeStep(milliseconds) {
             z = getZ(x,y)
             window.m = IdentityMatrix
             window.eye = [x,y,z]
-            console.log(eye)
             window.forward = normalize([0,2,-1])
             window.v = m4view2(eye, forward, up)
         }
@@ -478,19 +461,26 @@ async function setup(event) {
 
 async function objSetup(event){
     let objFile = 'example.obj'
-    console.log(window.location.hash.substr(1))
     if (window.location.hash.substr(1)) {
         objFile = window.location.hash.substr(1)
         console.log('window.location.hash.substr(1) is defined:', window.location.hash.substr(1));
     }
-    try {
-        objString = await fetch(objFile).then(res => res.text())
+    response = await fetch(objFile)
+    if (response.ok) {
+        objString = await response.text()
         window.OBJFLAG = 1
-    }
-    catch {
-        console.log("example.obj not exists")
+    } else {
+        response = await fetch('example.obj')
+        if (response.ok) {
+            objString = await response.text()
+            window.OBJFLAG = 1
+        }
+        else {
+        console.log("Obj not found")
         window.OBJFLAG = 0
+        }
     }
+
     if (window.OBJFLAG > 0) {
         window.objgeometry = parseOBJ(objString)
         console.log(objgeometry)
