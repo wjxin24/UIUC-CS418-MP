@@ -447,8 +447,14 @@ async function setup(event) {
 }
 
 async function objSetup(event){
+    let objFile = 'example.obj'
+    console.log(window.location.hash.substr(1))
+    if (window.location.hash.substr(1)) {
+        objFile = window.location.hash.substr(1)
+        console.log('window.location.hash.substr(1) is defined:', window.location.hash.substr(1));
+    }
     try {
-        objString = await fetch('example.obj').then(res => res.text())
+        objString = await fetch(objFile).then(res => res.text())
         window.OBJFLAG = 1
     }
     catch {
@@ -554,36 +560,6 @@ function parseOBJ(objString) {
             for (let j = 2; j < parts.length; j+=2) {
                 triangles.push([Number(parts[1]),Number(parts[j]),Number(parts[j+1])])
             }
-        //   faceVertices = []
-        //   faceNormals = []
-        //   faceTextureCoords = [];
-        //   for (let j = 1; j <= numVertices; j++) {
-        //     const indices = parts[j].split('/')
-  
-        //     const vertexIndex = parseInt(indices[0]) - 1
-        //     faceVertices.push(vertices[vertexIndex * 3], vertices[vertexIndex * 3 + 1], vertices[vertexIndex * 3 + 2])
-  
-        //     if (indices.length >= 2 && indices[1] !== '') {
-        //       const textureCoordIndex = parseInt(indices[1]) - 1
-        //       faceTextureCoords.push(aTexCoord[textureCoordIndex * 2], aTexCoord[textureCoordIndex * 2 + 1])
-        //     }
-  
-        //     if (indices.length >= 3 && indices[2] !== '') {
-        //       const normalIndex = parseInt(indices[2]) - 1
-        //       faceNormals.push(normals[normalIndex * 3], normals[normalIndex * 3 + 1], normals[normalIndex * 3 + 2])
-        //     }
-        //   }
-  
-        //   // Triangulate the face and add indices
-        //   for (let k = 1; k < numVertices - 1; k++) {
-        //     indices.push(faceVertices[0], faceVertices[k * 3], faceVertices[(k + 1) * 3])
-        //     if (faceTextureCoords.length > 0) {
-        //       indices.push(faceTextureCoords[0], faceTextureCoords[k * 2], faceTextureCoords[(k + 1) * 2])
-        //     }
-        //     if (faceNormals.length > 0) {
-        //       indices.push(faceNormals[0], faceNormals[k * 3], faceNormals[(k + 1) * 3])
-        //     }
-        //   }
       }
     }
     console.log(OBJFLAG)
