@@ -2,7 +2,7 @@ const IlliniBlue = new Float32Array([0.075, 0.16, 0.292, 1])
 const IlliniOrange = new Float32Array([1, 0.373, 0.02, 1])
 const IdentityMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1])
 
-
+window.OBJFLAG = 0  // object flag: 0: no object, 1: v only
 
 function compileAndLinkGLSL(vs_source, fs_source) {
     let vs = gl.createShader(gl.VERTEX_SHADER)
@@ -48,7 +48,7 @@ function supplyDataBuffer(data, program, vsIn, mode) {
     return buf;
 }
 
-function setupGeomery(geom) {
+function setupGeomery(geom,program) {
     var triangleArray = gl.createVertexArray()
     gl.bindVertexArray(triangleArray)
 
@@ -61,7 +61,9 @@ function setupGeomery(geom) {
     var indexBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+    console.log("triangleArray")
 
+    
     return {
         mode: gl.TRIANGLES,
         count: indices.length,
@@ -86,17 +88,21 @@ function draw() {
     gl.uniform1i(bindPoint, 0) // where `slot` is same it was in step 2 above
 
     let lightdir = normalize([1,1,1])
-    let halfway = normalize(add(lightdir, [0,0,1]))
 
     gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), lightdir)
-    gl.uniform3fv(gl.getUniformLocation(program, 'halfway'), halfway)
-    gl.uniform3fv(gl.getUniformLocation(program, 'lightcolor'), [1,1,1])
-
 
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
     gl.drawElements(geom.mode, geom.count, geom.type, 0)
 
+    if (OBJFLAG > 0) {
+        gl.useProgram(window.objprogram)
+        gl.bindVertexArray(window.objgeom.vao)
+        objm = m4trans(0,0,getZ(0,0)-window.groundCamHeight-window.obj_min_z)
+        gl.uniformMatrix4fv(gl.getUniformLocation(window.objprogram, 'mv'), false, m4mul(v,objm))
+        gl.uniformMatrix4fv(gl.getUniformLocation(window.objprogram, 'p'), false, p)
+        gl.drawElements(objgeom.mode, objgeom.count, objgeom.type, 0)
+    }
 }
 
 /** Compute any time-varying or animated aspects of the scene */
@@ -104,9 +110,7 @@ function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
     let speed = 0.005;
     let groundspeed = 0.0005;
-    
 
-    const angle = Math.PI * speed;
 
     if (keysBeingPressed['W'] || keysBeingPressed['w']) {    // move the camera forward
         console.log("pressing W")
@@ -240,6 +244,7 @@ function timeStep(milliseconds) {
             x = Math.random()*2-1
             y = Math.random()*2-1
             z = getZ(x,y)
+            window.m = IdentityMatrix
             window.eye = [x,y,z]
             console.log(eye)
             window.forward = normalize([0,2,-1])
@@ -247,7 +252,7 @@ function timeStep(milliseconds) {
         }
         else {
             FLIGHT = 1;
-            window.m = IdentityMatrix
+            window.m = m4scale(2,2,2)
             window.eye = [0,-5 ,1]
             window.forward = normalize(sub(window.center,eye))
             window.v = m4view(eye, forward, up)
@@ -262,18 +267,14 @@ function getZ(x, y) {
     n = window.gridsize
     gx = (1-y)*(n-1)/2
     gy = (x+1)*(n-1)/2
-    console.log("gx=",gx," gy=",gy)
-    // return window.geometry.attributes.position[(Math.floor(gx))*n+Math.floor(gy)][2] + window.groundCamHeight
+
     offset_x = gx-Math.floor(gx)
     offset_y = gy-Math.floor(gy)
     avg_z = (1-offset_x)*(1-offset_y)*window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)][2] + 
             offset_x*(1-offset_y)*window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)][2] + 
             (1-offset_x)*offset_y*window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)+1][2] + 
             offset_x*offset_y*window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)+1][2]
-    console.log(offset_x*offset_y,'*',window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)][2],
-            '+',(1-offset_x)*offset_y,'*',window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)][2],
-            '+',offset_x*(1-offset_y),'*',window.geometry.attributes.position[Math.floor(gx)*n+Math.floor(gy)+1][2],
-            '+',(1-offset_x)*(1-offset_y),'*',window.geometry.attributes.position[(Math.floor(gx)+1)*n+Math.floor(gy)+1][2])
+   
     return avg_z + window.groundCamHeight
 }
 /**
@@ -405,18 +406,23 @@ async function setup(event) {
     let vs = await fetch('vertex.glsl').then(res => res.text())
     let fs = await fetch('fragment.glsl').then(res => res.text())
     window.program = compileAndLinkGLSL(vs,fs)
+
+
     gl.enable(gl.DEPTH_TEST)
     // enable alpha
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     fillScreen()
+
+    await objSetup()
+
     // set up terrain scene
     window.gridsize = 100
     let fractures = 100
     window.geometry = createGrid(gridsize)
     geometry = faultPlane(geometry, gridsize, fractures)
     geometry = addNormals(geometry)
-    window.geom = setupGeomery(geometry)
+    window.geom = setupGeomery(geometry,program)
     loadTexture("farm.jpg")
     window.addEventListener('resize', fillScreen)
     window.keysBeingPressed = {}
@@ -435,12 +441,35 @@ async function setup(event) {
     window.forward = normalize(sub(center, eye))
     window.up = [0,0,1]
     window.v = m4view2(eye, forward, up)
-
-    console.log(v)
     window.groundCamHeight = 2/gridsize * 2
 
     requestAnimationFrame(timeStep)
 }
+
+async function objSetup(event){
+    try {
+        objString = await fetch('example.obj').then(res => res.text())
+        window.OBJFLAG = 1
+    }
+    catch {
+        console.log("example.obj not exists")
+        window.OBJFLAG = 0
+    }
+    if (window.OBJFLAG > 0) {
+        window.objgeometry = parseOBJ(objString)
+        console.log(objgeometry)
+        
+
+        let vs2 = await fetch('vertex'+OBJFLAG+'.glsl').then(res => res.text())
+        let fs2 = await fetch('fragment'+OBJFLAG+'.glsl').then(res => res.text())
+        window.objprogram = compileAndLinkGLSL(vs2,fs2)
+
+        window.objgeom = setupGeomery(objgeometry,objprogram)
+        console.log(objgeom)
+
+    }
+}
+
 
 function loadTexture(urlOfImageAsString) {
     let img = new Image();
@@ -467,6 +496,120 @@ function loadTexture(urlOfImageAsString) {
         gl.generateMipmap(gl.TEXTURE_2D) // lets you use a mipmapping min filter
     })
 }
+
+function parseOBJ(objString) {
+    OBJFLAG = 1
+    const lines = objString.split('\n')
+    vertices = []
+    color = []
+    normals = []
+    aTexCoord = []
+    indices = []
+    triangles = []
+    
+    window.obj_min_z = 999 // lowest point of the object
+
+    for (let i = 0; i < lines.length; i++) {
+      line = lines[i].trim()
+      if (line == '' || line.startsWith('#')) {
+        continue
+      }
+  
+      parts = line.split(/\s+/)
+      type = parts[0]
+    //   console.log(parts)
+      switch (type) {
+        case 'v':
+            vertices.push(
+                [Number(parts[1]), // x
+                Number(parts[2]), // y
+                Number(parts[3])] // z
+            )
+            obj_min_z = Math.min(obj_min_z,Number(parts[3]))
+            if (parts.length==7) {
+                OBJFLAG = 2
+                color.push(
+                    [Number(parts[4]), // x
+                    Number(parts[5]), // y
+                    Number(parts[6])] // z
+                )
+            }
+            break
+        case 'vn':
+          normals.push(
+            [Number(parts[1]), // x
+            Number(parts[2]), // y
+            Number(parts[3])] // z
+          )
+        case 'vt':
+          aTexCoord.push(
+            [Number(parts[1]), // u
+            Number(parts[2])] // v
+          )
+        case 'f':
+            if (parts.length - 1 < 3) {
+                console.error('Invalid face: ' + line)
+                continue
+            }
+            for (let j = 2; j < parts.length; j+=2) {
+                triangles.push([Number(parts[1]),Number(parts[j]),Number(parts[j+1])])
+            }
+        //   faceVertices = []
+        //   faceNormals = []
+        //   faceTextureCoords = [];
+        //   for (let j = 1; j <= numVertices; j++) {
+        //     const indices = parts[j].split('/')
+  
+        //     const vertexIndex = parseInt(indices[0]) - 1
+        //     faceVertices.push(vertices[vertexIndex * 3], vertices[vertexIndex * 3 + 1], vertices[vertexIndex * 3 + 2])
+  
+        //     if (indices.length >= 2 && indices[1] !== '') {
+        //       const textureCoordIndex = parseInt(indices[1]) - 1
+        //       faceTextureCoords.push(aTexCoord[textureCoordIndex * 2], aTexCoord[textureCoordIndex * 2 + 1])
+        //     }
+  
+        //     if (indices.length >= 3 && indices[2] !== '') {
+        //       const normalIndex = parseInt(indices[2]) - 1
+        //       faceNormals.push(normals[normalIndex * 3], normals[normalIndex * 3 + 1], normals[normalIndex * 3 + 2])
+        //     }
+        //   }
+  
+        //   // Triangulate the face and add indices
+        //   for (let k = 1; k < numVertices - 1; k++) {
+        //     indices.push(faceVertices[0], faceVertices[k * 3], faceVertices[(k + 1) * 3])
+        //     if (faceTextureCoords.length > 0) {
+        //       indices.push(faceTextureCoords[0], faceTextureCoords[k * 2], faceTextureCoords[(k + 1) * 2])
+        //     }
+        //     if (faceNormals.length > 0) {
+        //       indices.push(faceNormals[0], faceNormals[k * 3], faceNormals[(k + 1) * 3])
+        //     }
+        //   }
+      }
+    }
+    console.log(OBJFLAG)
+    switch (OBJFLAG) {
+        case 1:
+            attributes = {
+                position: vertices
+            }
+            break
+        case 2:
+            attributes = {
+                position: vertices,
+                color: color
+                // aTexCoord: aTexCoord,
+                // normal: normals
+                // indices: indices
+            }
+            break
+    }
+    console.log(attributes)
+    return {
+        attributes: attributes,
+        triangles: triangles
+    }
+}
+
 
 window.addEventListener('load', setup)
 window.addEventListener('resize', fillScreen)
