@@ -1,0 +1,4 @@
+FPS display
+Sphere-sphere collisions
+Variable radii
+Variable mass

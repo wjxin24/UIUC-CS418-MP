@@ -1,10 +1,19 @@
 class Sphere {
-    constructor(color, position, velocity, direction) {
+    constructor(radius, color, position, velocity, direction) {
+      this.radius = radius; // radius
       this.color = color; // RGB color
       this.position = position; // XYZ position
       this.velocity = velocity; // Velocity vector
     }
+    
+    get radius() {
+      return this._radius;
+    }
   
+    set radius(r) {
+      this._radius = r;
+    }
+
     get color() {
       return this._color;
     }

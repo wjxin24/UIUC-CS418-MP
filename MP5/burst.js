@@ -87,71 +87,89 @@ function draw() {
     gl.uniform3fv(gl.getUniformLocation(program, 'lightdir'), lightdir)
 
     gl.uniformMatrix4fv(gl.getUniformLocation(program, 'p'), false, p)
+
+    // check if all spheres have settled down
+    let settle = 1
+    for (let i=0; i<50; i++) {
+        if (mag(spheres[i].velocity) > 0.0008) {
+            settle = 0
+            break
+        }
+    }
+
+    if (settle) {
+        init50spheres()
+        console.log("reset")
+    }
+
     for (let i=0; i<50; i++) {
         // load a model matrix for this particle's position and size
-        let size = m4scale(0.05,0.05,0.05)
+        let radius = spheres[i].radius
+        let size = m4scale(radius,radius,radius)
         let pos = add(spheres[i].position, spheres[i].velocity)
-        console.log(pos)
         // bound off the wall
         if (pos[0] >= 1 || pos[0] <= -1) {
             pos[0] = pos[0] >= 1 ? 1 : -1
-            spheres[i].velocity = [-0.9*spheres[i].velocity[0],spheres[i].velocity[1],spheres[i].velocity[2]]
+            spheres[i].velocity = mul([-spheres[i].velocity[0],spheres[i].velocity[1],spheres[i].velocity[2]], 0.5)
         }
         if (pos[1] >= 1 || pos[1] <= -1) {
             pos[1] = pos[1] >= 1 ? 1 : -1
-            spheres[i].velocity = [spheres[i].velocity[0],-0.9*spheres[i].velocity[1],spheres[i].velocity[2]]
+            spheres[i].velocity = mul([spheres[i].velocity[0],-spheres[i].velocity[1],spheres[i].velocity[2]], 0.5)
         }
         if (pos[2] >= 1 || pos[2] <= -1) {
             pos[2] = pos[2] >= 1 ? 1 : -1
-            spheres[i].velocity = [spheres[i].velocity[0],spheres[i].velocity[1],-0.9*spheres[i].velocity[2]]
+            spheres[i].velocity = mul([spheres[i].velocity[0],spheres[i].velocity[1],-spheres[i].velocity[2]], 0.5)
         }
 
         // collision
-        for (let j=0; j<50; j++) {
-            if (i==j) {
-                continue
-            }
-            if (checkCollide(spheres[i], spheres[j], 0.05)) {
+        for (let j=i+1; j<50; j++) {
+            if (checkCollide(spheres[i], spheres[j], radius, spheres[j].radius)) {
+                noCollision = 0
                 applyCollision(i,j)
+                pos = add(spheres[i].position, spheres[i].velocity)
             }
+            
         }
-        
-
         spheres[i].position = pos
+
         let m = m4mul(m4trans(...pos), size)
-        console.log(m)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, 'mv'), false, m4mul(v,m))
         // apply gravity to the sphere's velocity
-        spheres[i].velocity = add(spheres[i].velocity, [0,-0.001,0])
+        if (spheres[i].position[1] > -1) {
+            spheres[i].velocity = add(spheres[i].velocity, [0,-0.0002,0])
+        }
         // apply drag to the sphere's velocity
-        spheres[i].velocity = mul(spheres[i].velocity, 0.98)
+        spheres[i].velocity = mul(spheres[i].velocity, 0.99)
         // load a color for this particle
         let color = spheres[i].color
-
         gl.uniform3fv(gl.getUniformLocation(program, 'color'), color)
         
         gl.drawElements(geom.mode, geom.count, geom.type, 0)
     }
 }
 
+
 /** Compute any time-varying or animated aspects of the scene */
-function timeStep(milliseconds) {
+async function timeStep(milliseconds) {
     let seconds = milliseconds / 1000;
 
-    window.v = m4view([0,0,5], [0,0,0], [0,1,0])
+    window.v = m4view([0,0,4], [0,0,0], [0,1,0])
 
     draw()
+
+    document.querySelector('#fps').innerHTML = seconds.toFixed(3)
+
     requestAnimationFrame(timeStep)
 }
 
-function checkCollide(sphere1, sphere2, r) {
+function checkCollide(sphere1, sphere2, r1, r2) {
     // Calculate the distance between the centers of the two spheres
     let distance = Math.sqrt(
       (sphere1.position[0] - sphere2.position[0]) ** 2 +
       (sphere1.position[1] - sphere2.position[1]) ** 2 +
       (sphere1.position[2] - sphere2.position[2]) ** 2)
     
-    if (distance <= 2 * r) {
+    if (distance <= r1 + r2) {
         return true;
     } else {
         return false;
@@ -160,21 +178,16 @@ function checkCollide(sphere1, sphere2, r) {
   
 function applyCollision(i, j) {
     // Calculate the vector of the line along the two centers
-    let line = normalize([
-      spheres[i].position[0] - spheres[j].position[0],
-      spheres[i].position[1] - spheres[j].position[1],
-      spheres[i].position[2] - spheres[j].position[2]])
-  
-    // Calculate the relative velocity of the two spheres
-    let relativeVelocity = [
-      spheres[i].velocity[0] - spheres[j].velocity[0],
-      spheres[i].velocity[1] - spheres[j].velocity[1],
-      spheres[i].velocity[2] - spheres[j].velocity[2]]
-    
-
-    // to do: relative velo change should be along the line
-    spheres[i].velocity = sub(spheres[i].velocity, div(relativeVelocity,2))
-    spheres[j].velocity = add(spheres[j].velocity, div(relativeVelocity,2))
+    let line = normalize(sub(spheres[i].position, spheres[j].position))
+    // Relative velocity of the two spheres along the line
+    let relativeVelocity = mul(line, dot(spheres[i].velocity, line)-dot(spheres[j].velocity, line))
+    // mass of spheres are propotional to their radii
+    let m1 = spheres[i].radius ** 3
+    let m2 = spheres[j].radius ** 3
+    let w1 = m2/(m1+m2)
+    let w2 = m1/(m1+m2)
+    spheres[i].velocity = sub(spheres[i].velocity, mul(relativeVelocity, w1*2))
+    spheres[j].velocity = add(spheres[j].velocity, mul(relativeVelocity, w2*2))
 }
   
 /**
@@ -221,23 +234,25 @@ async function setup(event) {
     
     window.addEventListener('resize', fillScreen)
 
-    // initialize sphere properties
-    window.spheres = []
-    for (let i=0; i<50; i++) {
-        let color = [Math.random() * 255, Math.random() * 255, Math.random() * 255]
-        let position = [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1]
-        let velocity = [(Math.random() * 2 - 1) * 0.05, (Math.random() * 2 - 1) * 0.05, (Math.random() * 2 - 1) * 0.05]
-        let sphere = new Sphere(color, position, velocity)
-        
-        spheres.push(sphere)
-    }
+    init50spheres()
 
     requestAnimationFrame(timeStep)
 }
 
 
-
-
+// initialize sphere properties
+function init50spheres() {
+    window.spheres = []
+    for (let i=0; i<50; i++) {
+        let radius = Math.random() * 0.1 + 0.05   // radius range from 0.05 to 0.2
+        let color = [Math.random() * 255, Math.random() * 255, Math.random() * 255]
+        let position = [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1]
+        let velocity = [(Math.random() * 2 - 1) * 0.1, (Math.random() * 2 - 1) * 0.1, (Math.random() * 2 - 1) * 0.1]
+        let sphere = new Sphere(radius, color, position, velocity)
+        
+        spheres.push(sphere)
+    }
+}
 
 
 window.addEventListener('load', setup)

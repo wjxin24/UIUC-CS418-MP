@@ -6,5 +6,5 @@ out vec4 fragColor;
 in vec3 fnormal;
 void main() {
     float lambert = dot(lightdir, fnormal);
-    fragColor = vec4(color.rgb * lambert * 0.1, 1.0);
+    fragColor = vec4(color.rgb * lambert * 0.05, 1.0);
 }
